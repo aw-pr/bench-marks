@@ -80,6 +80,22 @@ Free-text field. Record anything the rubric dimensions do not capture: unexpecte
 
 ---
 
+## Provenance void rule
+
+Every scorecard must record the underlying model and harness for each row (the
+"Tool provenance" block in the scorecard template). Cursor multiplexes models,
+so a Cursor row with no recorded model is uninterpretable: **mark it void, do
+not score it.** A void row does not count for or against any tool and is not a
+winner candidate.
+
+Cursor's value in the Bench is harness isolation, not a fourth independent
+model: it must be read against the native row of whatever model it ran (Cursor
+on an Anthropic model vs the `claude` row; on an OpenAI/Codex model vs the
+`codex` row). Any delta there is evidence about Cursor's scaffolding, not the
+model. Record that comparison explicitly in the Cursor per-tool note.
+
+---
+
 ## Worked example
 
 Task: implement a deterministic Gray-Scott reaction-diffusion step function in Python (see `tasks/EXAMPLE-001/`).
