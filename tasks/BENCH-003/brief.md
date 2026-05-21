@@ -52,7 +52,7 @@ Read these documents as primary inputs: `README.md`, `docs/discussion.md`, `docs
 
 ## Context paste
 
-The repository is at `~/repos/agentic-rag-kimble` on the `pass-29` branch. All documents listed in the spec exist there. Read them directly — do not synthesise content you have not read.
+The repository is `agentic-rag-kimble` on the `pass-29` branch (the orchestrator passes the working-tree path at dispatch time). All documents listed in the spec exist there. Read them directly — do not synthesise content you have not read.
 
 ---
 

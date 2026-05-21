@@ -55,7 +55,7 @@ Read primarily: `README.md`, `docs/discussion.md`. Glance at `docs/architecture.
 
 ## Context paste
 
-The repository is at `~/repos/agentic-rag-kimble` on the `pass-29` branch. Documents listed in the spec exist there.
+The repository is `agentic-rag-kimble` on the `pass-29` branch (the orchestrator passes the working-tree path at dispatch time). Documents listed in the spec exist there.
 
 ---
 
