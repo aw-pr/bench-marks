@@ -1,5 +1,9 @@
 # RUNBOOK — bench-marks
 
+## Status
+
+- 2026-07-04: Queued (post-exam): run the Fable row on BENCH-007, complete scorecard + LEDGER + iTone draft.
+
 ## Purpose
 
 "The Bench" — a four-tool eval harness. The same task is run through Claude Max, Codex Plus, Cursor Pro, and Gemini Plus, scored against `rubric.md`; results feed an iTone Substack series.
