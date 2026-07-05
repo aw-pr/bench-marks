@@ -57,6 +57,31 @@ This entry is a prior stated before the Fable row is run (see
 UNSCORED). It should be checked against, not read into, the eventual
 scored result.
 
+### Result vs hypothesis (Fable row run 2026-07-05)
+
+The Fable row scored **30/30**, identical to Opus. Against the prior:
+
+- **Correctness / Iterations / Failure mode / Autonomy:** hypothesis
+  held — all flat vs Opus (both 5/5), as predicted for a brief this
+  well-specified. Fable did not fall into the O(1) trap and produced a
+  correct heap-free design in one pass.
+- **Time (predicted to REGRESS):** **not falsifiable at this rubric's
+  granularity.** Fable's measured wall-clock was ≈138s, which is still
+  inside the coarsest "under 5 minutes → 5" bucket, and the Opus row's
+  wall-clock was never captured. A real Fable slowdown therefore cannot
+  surface as a score difference here. The Time prior is neither
+  confirmed nor refuted — it is untestable without raw elapsed-time
+  instrumentation, which is now logged as a bench gap.
+- **Meta-finding:** the task **saturates the rubric** for frontier peers.
+  Two frontier models both hit the 30/30 ceiling, so this task class
+  measures task difficulty, not the model's headroom. To discriminate
+  frontier tiers, future BENCH tasks in this class need either a harder
+  brief (ambiguous spec, larger design space) or finer-grained anchors
+  (raw time, token count, a quality dimension that does not top out at a
+  correct-and-clean kernel). The one visible Fable/Opus difference was
+  stylistic, not scored: Fable leaned on `OrderedDict`; Opus hand-rolled
+  the linked list.
+
 ## Updating the lead model
 
 If bench results over several tasks consistently show a different tool outperforming the current lead model on that project's task profile, raise an issue in the source repo with a link to the relevant LEDGER.md rows. The decision to change the lead model belongs to the project owner, not the bench.
