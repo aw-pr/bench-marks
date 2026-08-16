@@ -12,3 +12,4 @@ __pycache__/
 
 # BENCH-002: blind adjudicator label map (preserves blinding between runs)
 tasks/BENCH-002/results/label-map.json
+.codegraph/
