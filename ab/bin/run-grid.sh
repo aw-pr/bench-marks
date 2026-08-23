@@ -29,7 +29,10 @@ i=0
 while IFS=$'\t' read -r t arm n; do
   i=$((i + 1))
   printf '[%s/%s] ' "$i" "$total"
-  "$here/bin/run-cell.sh" "$t" "$lever" "$arm" "$n" || printf '  (cell failed, recorded)\n'
+  # stdin is redirected because run-cell.sh invokes `claude -p`, which reads
+  # stdin and would otherwise consume the rest of this loop's plan -- the loop
+  # then exits after one cell and reports itself complete.
+  "$here/bin/run-cell.sh" "$t" "$lever" "$arm" "$n" < /dev/null || printf '  (cell failed, recorded)\n'
 done < <(sort -R "$plan")
 
 printf '== grid complete: %s\n' "$here/runs/${lever}.jsonl"

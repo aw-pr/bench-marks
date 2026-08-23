@@ -70,7 +70,7 @@ started="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 ( cd "$repo" && timeout 900 claude -p "$prompt" \
     --output-format stream-json --verbose \
     --model "$model" --allowedTools "$allowed" \
-    ${extra_args[@]+"${extra_args[@]}"} ) > "$stream" 2>"$stream.err"
+    ${extra_args[@]+"${extra_args[@]}"} < /dev/null ) > "$stream" 2>"$stream.err"
 rc=$?
 
 # --- metrics: all from the CLI's own events --------------------------------
