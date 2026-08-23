@@ -1,0 +1,4 @@
+# Raw run records are data, not source. They are committed deliberately when a
+# lever produces a decision (alongside its RESULTS.md entry), not on every run,
+# so the repo does not accumulate thousands of exploratory rows.
+*.log

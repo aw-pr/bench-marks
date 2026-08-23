@@ -1,0 +1,99 @@
+# Lever registry for the A/B harness.
+#
+# Each lever names a thing TOKEN-SPEND-TODO.md claims will cut spend or
+# spin-up. A lever is testable only when its machinery is present; bin/preflight.sh
+# enforces that and refuses rather than warns, because an absent lever silently
+# degrades its own treatment arm into the control arm.
+#
+# arms.control is always the do-nothing arm. Anything that differs between the
+# two arms other than the named lever is a bug in the cell definition.
+
+version: 1
+
+levers:
+  codegraph:
+    todo_item: "1 / 1b"
+    question: >
+      Does querying a pre-built code graph reach a correct answer in fewer tool
+      calls and less wall-clock than grep + Read, on a cold comprehension task?
+    prior: >
+      BENCH-006, n=1, scored a 27-27 rubric tie with a split verdict: codegraph
+      won round-trips and completeness, grep/Read won token-frugality and
+      failure-mode honesty. Never re-run with metering or repeats.
+    arms:
+      control:   { mcp: none }
+      treatment: { mcp: codegraph }
+    preflight:
+      - binary: codegraph
+      - mcp_responds: codegraph
+      - index_newer_than_head: true
+    status: BLOCKED
+    blocked_reason: >
+      codegraph is not installed. /opt/homebrew/bin/codegraph does not exist as
+      of 2026-08-23 and no node_modules copy remains. Re-link or reinstall
+      before this lever can be measured. The fractals index is also stale --
+      built 2026-07-20, 39 files changed since.
+
+  repo_priming:
+    todo_item: "4"
+    question: >
+      Does a 20-30 line architecture map at the top of CLAUDE.md / AGENTS.md
+      reduce the tool calls an agent spends orienting before it can act?
+    prior: none
+    arms:
+      control:   { priming: absent }
+      treatment: { priming: present }
+    preflight:
+      - fixture_pair: true
+    status: READY
+
+  subagent_hygiene:
+    todo_item: "5"
+    question: >
+      Does instructing an explore sub-agent to return conclusions rather than
+      file contents reduce parent-context tokens without losing correctness?
+    prior: none
+    arms:
+      control:   { subagent_prompt: dump }
+      treatment: { subagent_prompt: conclusions }
+    preflight:
+      - fixture_pair: true
+    status: READY
+
+  model_tier:
+    todo_item: "3"
+    question: >
+      On a given task class, which is the cheapest tier that still passes the
+      answer-key gate? This is the per-task-type routing guide item 3 leaves open.
+    prior: >
+      BENCH-007 found Fable 30/30 and Opus 30/30 on an O(1) LFU cache kernel --
+      the rubric saturated, which is evidence the quality dimension does not
+      discriminate here and cost is the only live variable.
+    arms:
+      control:   { model: claude-opus-5 }
+      treatment: { model: claude-sonnet-5 }
+    extra_arms:
+      - { model: claude-haiku-4-5-20251001 }
+    preflight:
+      - model_reachable: true
+    status: READY
+
+  prompt_cache:
+    todo_item: "2"
+    question: >
+      Is the cacheable-prefix work actually landing -- what fraction of input
+      tokens are cache reads, and does it hold across a session's turns?
+    prior: >
+      Banked in autometta (commits 9038385, 9fcbdc4) and instrumented, but never
+      measured against a no-cache arm.
+    arms:
+      control:   { note: "not switchable from the CLI" }
+      treatment: { note: "not switchable from the CLI" }
+    preflight:
+      - observational_only: true
+    status: OBSERVATIONAL
+    note: >
+      The CLI gives no flag to disable prompt caching, so this cannot be a true
+      A/B. It is measured observationally instead: cache_read_input_tokens over
+      total input tokens, reported per run. Recorded here so the lever is not
+      mistaken for untested when it is in fact untestable by this method.

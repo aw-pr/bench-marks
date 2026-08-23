@@ -1,0 +1,39 @@
+# T1 deliberately reuses BENCH-006's Experiment 1 question verbatim, so any
+# result here can be read against that n=1 result rather than starting a fresh
+# and incomparable series.
+id: T1-orbit-trace
+repo_key: fractals
+model: claude-opus-5
+tier_control: claude-opus-5
+tier_treatment: claude-sonnet-5
+allowed_tools: "Read,Grep,Glob,Bash"
+# Denied, not merely un-allowed. A sub-agent's tool calls never appear in the
+# parent stream, so delegation would under-count the very metric being compared.
+disallowed_tools: "Agent,Task,WebSearch,WebFetch"
+prompt: |
+  In this repository, explain how a reference orbit is produced and bound into
+  the live perturbation render path, and name every source file that consumes
+  it. Answer concisely and name files explicitly. Ignore anything under a
+  build/ or DerivedData directory.
+
+# Ground truth, established by grep over the tracked Swift sources on
+# 2026-08-23 (build artefacts excluded):
+#   ReferenceOrbit.swift        defines it, and uses BigFixed for precision
+#   FractalRenderer.swift       consumes it, alongside SeriesApproximation
+#   FractalMetalView.swift      consumes it
+#   FractalAppTests.swift       covers it
+answer_key:
+  must_mention:
+    - ReferenceOrbit
+    - FractalRenderer
+    - FractalMetalView
+    - BigFixed
+
+# Injected into the treatment arm of the repo_priming lever only.
+priming: |
+  Repository map: a Go core under internal/ and cmd/, and a Swift app under
+  apple/FractalApp/. The deep-zoom path is Swift: ReferenceOrbit.swift computes
+  a high-precision reference orbit using BigFixed.swift fixed-point arithmetic;
+  FractalRenderer.swift binds it into the render path alongside
+  SeriesApproximation.swift; FractalMetalView.swift is the coordinator that
+  drives it. Build output under apple/FractalApp/build/ is not source.

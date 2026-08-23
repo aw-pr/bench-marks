@@ -1,0 +1,31 @@
+# A second, structurally different target so a lever is not judged on one
+# question. T1 is Swift and narrative; T2 is Go and enumerative.
+id: T2-viewport-consumers
+repo_key: fractals
+model: claude-opus-5
+tier_control: claude-opus-5
+tier_treatment: claude-sonnet-5
+allowed_tools: "Read,Grep,Glob,Bash"
+# Denied, not merely un-allowed. A sub-agent's tool calls never appear in the
+# parent stream, so delegation would under-count the very metric being compared.
+disallowed_tools: "Agent,Task,WebSearch,WebFetch"
+prompt: |
+  In this repository, which Go packages depend on the internal/viewport
+  package? Name the packages and the files in them that reference it. Answer
+  concisely.
+
+# Ground truth, grep over tracked Go sources on 2026-08-23:
+#   internal/scene   scene.go, scene_property_test.go
+#   internal/nav     engine.go, nav.go
+#   internal/render  perturbation_test.go
+answer_key:
+  must_mention:
+    - scene
+    - nav
+    - render
+
+priming: |
+  Repository map: the Go core lives under internal/ with packages viewport,
+  scene, nav and render, plus binaries under cmd/. internal/viewport holds the
+  view rectangle type consumed by scene composition and by the navigation
+  engine.
