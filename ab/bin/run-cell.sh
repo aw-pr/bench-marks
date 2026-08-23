@@ -50,6 +50,8 @@ case "$lever:$arm" in
   codegraph:control)      extra_args+=(--strict-mcp-config)
                           disallowed="${disallowed:+$disallowed,}mcp__codegraph" ;;
   codegraph:treatment)    extra_args+=(--strict-mcp-config --mcp-config "$repo/.mcp.json") ;;
+  ast_grep:control)       disallowed="${disallowed:+$disallowed,}Bash(ast-grep:*),Bash(sg:*)" ;;
+  ast_grep:treatment)     append_prompt="ast-grep is installed and on PATH. It is a structural code search over tree-sitter: \`ast-grep run -l <lang> -p '<pattern>'\` where \$NAME matches one node and \$\$\$ARGS matches many. Prefer it over textual grep when the question is about code structure -- calls, definitions, types -- rather than text." ;;
   repo_priming:control)   : ;;
   repo_priming:treatment) append_prompt="$(yq -r '.priming // ""' "$task_file")" ;;
   subagent_hygiene:control)
@@ -79,6 +81,14 @@ tool_calls="$(jq -r 'select(.type=="assistant") | .message.content[]? | select(.
 tools_used="$(jq -rs '[.[] | select(.type=="assistant") | .message.content[]? | select(.type=="tool_use") | .name] | group_by(.) | map({(.[0]): length}) | add // {}' "$stream" 2>/dev/null)"
 [[ -z "$tools_used" ]] && tools_used='{}'
 
+# The tools histogram records tool NAMES, so a lever whose treatment is "this
+# binary is on PATH" looks identical in both arms: every call is just "Bash".
+# Capture the leading word of each Bash command as well, so the record can
+# prove the treatment arm actually reached for the thing being tested rather
+# than quietly behaving like its own control.
+bash_cmds="$(jq -rs '[.[] | select(.type=="assistant") | .message.content[]? | select(.type=="tool_use" and .name=="Bash") | .input.command // "" | split(" ")[0] | split("/") | .[-1]] | group_by(.) | map({(.[0]): length}) | add // {}' "$stream" 2>/dev/null)"
+[[ -z "$bash_cmds" ]] && bash_cmds='{}'
+
 res_json="$(jq -c 'select(.type=="result") | {num_turns, duration_ms, duration_api_ms, ttft_ms, total_cost_usd, is_error, usage, subagent_stats}' "$stream" 2>/dev/null | head -1)"
 if [[ -z "$res_json" ]]; then
   # No result event: the CLI died before finishing. Record the run as a
@@ -103,11 +113,12 @@ jq -nc \
   --arg model "$model" --arg started "$started" --argjson rc "$rc" \
   --argjson passed "$passed" --argjson missing "$missing" \
   --argjson tool_calls "${tool_calls:-0}" --argjson tools "$tools_used" \
+  --argjson bash_cmds "$bash_cmds" \
   --argjson res "$res_json" \
   --arg argv "model=$model allowed=$allowed disallowed=${disallowed:-none} extra=${extra_args[*]:-none}" \
   '{task:$task, lever:$lever, arm:$arm, repeat:$repeat, model:$model,
     started_at:$started, exit_code:$rc, passed:$passed, missing_terms:$missing,
-    tool_calls:$tool_calls, tools:$tools, argv:$argv,
+    tool_calls:$tool_calls, tools:$tools, bash_cmds:$bash_cmds, argv:$argv,
     num_turns:$res.num_turns, duration_ms:$res.duration_ms,
     duration_api_ms:$res.duration_api_ms, ttft_ms:$res.ttft_ms,
     total_cost_usd:$res.total_cost_usd, is_error:$res.is_error,

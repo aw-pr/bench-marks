@@ -68,9 +68,15 @@ printf '== preflight: %s (repo %s)\n' "$lever" "$repo_root"
 
 case "$lever" in
   codegraph)
-    check_binary codegraph
-    check_mcp_responds codegraph
-    check_index_fresh
+    # Retired 2026-08-23, never measured. Refuse by name rather than letting
+    # check_binary report a missing tool, so the reason reaching the operator
+    # is the decision and not the symptom.
+    fail "codegraph is RETIRED, not merely missing -- see levers.yaml and RESULTS.md. Use the ast_grep lever. Re-adopting it means a pinned node@20, a moved npm prefix, and a per-repo index to keep fresh; do that deliberately, not by re-running this."
+    ;;
+  ast_grep)
+    check_binary ast-grep
+    # No index check: the whole point of this lever is that there is nothing to
+    # keep fresh. If a staleness gate is ever needed here, the lever is wrong.
     ;;
   repo_priming|subagent_hygiene)
     check_fixture_pair

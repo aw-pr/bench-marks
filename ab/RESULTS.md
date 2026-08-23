@@ -29,33 +29,50 @@ does not support".
 
 ---
 
-## codegraph — BLOCKED, not run
+## codegraph — RETIRED, never measured
 
-`codegraph` is not installed on this machine. `/opt/homebrew/bin/codegraph`
-does not exist; node has been upgraded to 26.5.0 and the global package set no
-longer contains it. This is the breakage `TOKEN-SPEND-TODO.md` predicted:
-*"it will break on a node upgrade and need re-linking."*
+Retired 2026-08-23 without ever producing a number. Recorded here rather than
+deleted, because "we tried it and it lost" and "we could never run the test"
+are different findings and only one of them is true.
 
-`bin/preflight.sh` refuses the lever. That refusal is the point of the gate:
-with codegraph absent, the treatment arm would have silently used grep/Read —
-the control arm's toolset — both arms would have produced identical numbers,
-and this file would now report "no measurable difference" for a lever that
-never ran. Item 1's rollout decision would have been settled by a tool that was
-not there.
+**Why it could not run.** `codegraph` was not installed. Two independent
+failures, either sufficient on its own: it declares `engines: node ">=20.0.0
+<25.0.0"` against an installed node 26.5.0, and its global npm prefix pointed
+inside a version-pinned Homebrew Cellar path, so the node upgrade took the
+symlink with it. `TOKEN-SPEND-TODO.md` predicted exactly this — *"it will break
+on a node upgrade and need re-linking"* — and the prediction was right without
+being acted on, which is the more interesting half.
 
-Still outstanding while it is blocked:
+`bin/preflight.sh` refused the lever, and that refusal is the whole point of
+the gate. With codegraph absent the treatment arm would have silently fallen
+back to grep/Read — the control arm's toolset — both arms would have produced
+identical numbers, and this file would now report "no measurable difference"
+for a lever that never ran.
 
-- Three repos register a dead server in `.mcp.json`: `bench-marks`,
-  `fractals-from-the-90s`, `token-maxing`. Two of those registrations were
-  committed this month.
-- The global `codegraph-first` skill still instructs agents to reach for it
-  first, citing BENCH-006.
-- The fractals index is stale regardless: built 2026-07-20, 39 files changed
-  since. `preflight.sh` would refuse on that alone.
+**Why it was retired rather than reinstalled.** Reinstalling needs a pinned
+node@20 and a moved npm prefix, and then buys an index that must be rebuilt per
+repo and goes stale silently: the fractals index was built 2026-07-20, 39 files
+behind HEAD. Against that, the measured baseline is cheap — BENCH-008 answered
+both harness tasks with plain Grep/Read in 1–7 tool calls on repos of 3k–41k
+lines — and the only prior evidence, BENCH-006 at n=1, was a rubric tie whose
+noted failure mode was the graph being *confidently wrong* about edges. A tool
+that is expensive to keep honest and unproven when honest is not worth the
+node pin.
 
-**To unblock:** reinstall codegraph, re-index the target repo, then
-`bin/run-grid.sh codegraph 3`. The preflight will confirm all three conditions
-before a single cell runs.
+**What was removed.** 40 `.mcp.json` registrations across the estate (29 of
+them already pointing at nothing), the `codegraph-first` skill that told
+claude_code/codex/cursor to prefer it, its control-plane registration, and four
+synced skill copies. `emergence-lab` was left alone — another session holds it.
+
+**What replaced it.** `ast_grep` — same question, no index. See its section
+below. If that lever also fails to beat grep, the correct reading is that no
+discovery tool is warranted at this repo size, and both retirements were right.
+
+**Detection added so this class of failure is loud next time.**
+`mcp-hub/scripts/doctor-platforms.py` gained `check_repo_mcp_binaries` (walks
+each repo's own `.mcp.json` and fails when a server's command does not resolve)
+and `check_npm_global_prefix` (fails when `npm prefix -g` sits inside a Cellar
+path). Both are generic and outlive codegraph.
 
 ---
 
