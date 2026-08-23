@@ -76,6 +76,70 @@ path). Both are generic and outlive codegraph.
 
 ---
 
+## ast_grep — INCONCLUSIVE: the treatment arm never fired
+
+Ran twice, n=3, two tasks, 12 cells each. Gate: 12/12 passed in both arms both
+times. **Neither run measured ast-grep**, because in all six treatment cells of
+the instrumented run the model never once invoked it. Recorded as inconclusive
+rather than as the win the second run's numbers appear to show.
+
+| run | tool calls (paired median delta) | what it looks like |
+|---|---|---|
+| 1, uninstrumented | **+11.8%** | ast-grep is worse |
+| 2, instrumented | **−21.7%** | ast-grep is much better |
+
+Same lever, same tasks, same n, opposite signs. That alone should stop anyone
+reporting either number, and the instrumentation says why.
+
+**What the treatment arm actually ran.** `run-cell.sh` now records the leading
+word of every Bash command, not just the tool name. Across the six treatment
+cells: `grep` 25 times, `cd` 15, `sed`/`cat`/`ls`/`wc`/`head` the rest.
+`ast-grep`: **zero**. The control arm denies ast-grep at the tool layer and the
+treatment arm declines to use it, so both arms were grep-and-Read. The lever
+compared a thing against itself.
+
+**Why this was invisible before.** The tools histogram stores tool *names*.
+Every call in both arms logged as `"Bash"`, so a lever whose entire treatment
+is "this binary is on PATH" left no trace in its own evidence. The first run
+was reported internally as a clean null before that gap was noticed; the second
+would have been reported as a 21.7% win. Both would have been wrong, and the
+second wrong in the more expensive direction.
+
+**Three things this does establish, none of them about ast-grep:**
+
+1. **The noise floor here is roughly ±20% at n=3 over two tasks.** Two
+   grep-vs-grep runs differed by 33 percentage points of apparent effect. Any
+   lever claiming less than about a 20% delta on this task set is
+   unmeasurable as configured — that is a property of the harness, and it
+   applies to `repo_priming` and `subagent_hygiene` before they are run.
+2. **An `--append-system-prompt` nudge does not reliably change tool
+   selection.** The treatment prompt named the binary, gave its syntax, and
+   said to prefer it for structural questions. The model used grep anyway, six
+   times out of six. Availability plus instruction is not adoption.
+3. **That is the same failure that made `codegraph-first` harmless-looking for
+   weeks** — doctrine asserting a tool should be preferred, with nothing
+   measuring whether it was. Retiring the skill removed the assertion; this
+   result shows the assertion would not have worked even had the tool existed.
+
+**What would make it measurable.** Force the tool rather than suggest it: deny
+`Bash(grep:*)` in the treatment arm so structural search is the only route, and
+accept that this measures "ast-grep vs no text search" rather than "ast-grep vs
+grep". The honest version of the original question may simply not be reachable
+by prompt-level A/B — the model prefers the tool it knows, and that preference
+is itself the answer for a low-hassle-tool decision.
+
+**Standing recommendation, unchanged and now better supported:** at 3k–41k
+lines, plain Grep/Read passes the gate every time in 1–16 tool calls. ast-grep
+is installed and costs nothing to keep (one static binary, no index, no
+registration), so it stays available for the structural queries where regex
+genuinely cannot express the question. It is not worth steering toward, and no
+skill should be written telling agents to prefer it.
+
+Raw: `runs/ast_grep.jsonl` (instrumented), `runs/ast_grep.uninstrumented.jsonl`
+(first run, kept as the evidence for the noise-floor claim).
+
+---
+
 ## repo_priming — READY, not yet run
 
 Fixtures exist: each corpus task carries a `priming` block injected into the

@@ -61,7 +61,19 @@ levers:
       treatment: { tool: ast_grep_available }
     preflight:
       - binary: ast-grep
-    status: READY
+    status: INCONCLUSIVE
+    ran: 2026-08-23
+    result: >
+      Ran twice at n=3. Gate 12/12 in both arms both times. Not a measurement
+      of ast-grep: instrumentation showed the treatment arm invoked grep 25
+      times and ast-grep zero times across all six treatment cells, so both
+      arms were grep-and-Read. The two runs disagree in sign (+11.8% then
+      -21.7% on tool calls), which puts the harness noise floor at roughly
+      +/-20% at n=3 over two tasks -- a constraint that applies to every other
+      lever here. Naming a tool in --append-system-prompt does not reliably
+      change tool selection; availability plus instruction is not adoption.
+      To make it measurable, deny Bash(grep:*) in the treatment arm and accept
+      that this asks a different question.
     note: >
       Neither arm needs an index, a daemon, or an MCP registration, so unlike
       codegraph this lever cannot silently degrade into its own control through
