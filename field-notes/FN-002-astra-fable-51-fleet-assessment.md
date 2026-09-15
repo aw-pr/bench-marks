@@ -156,4 +156,8 @@ from "gave up" needed a human reading nine envelopes four days later.
 
 - Per-repo ledgers: `<repo>/state/cost-log.jsonl`, `<repo>/state/envelopes/`
 - Slate design and hold: `token-maxing/WEEKEND-RUNS.md`, `token-maxing/HANDOFF.md`
-- Open item: contract-crawler stage 01 needs a card re-brief before requeue
+- contract-crawler stage 01 was re-briefed and re-dispatched 2026-09-15 with
+  Fable 5.1 in the worker seat and Astra retained as verifier (card commit
+  `c8f4b5f`). When it lands it adds the second Astra-as-verifier seat and the
+  first Fable 5.1 worker seat outside emergence-lab and reflexivity; both
+  tables above are stated as of 2026-09-15 and will need the new rows.
