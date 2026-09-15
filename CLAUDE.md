@@ -18,6 +18,14 @@ When Claude acts as the harness orchestrator, its responsibilities are:
 
 Claude is itself one of the four tools under test. When scoring a task where Claude produced an output, Claude must score its own run using the same rubric anchors it applies to the other tools. No self-favouring. If in doubt, score conservatively. A reviewer reading the scorecard should not be able to identify which tool the scorer preferred.
 
+## Field notes are not benches
+
+`field-notes/` holds un-scored narrative observations from real project work.
+They are never scored against `rubric.md`, never carry a six-dimension total,
+and never get a `LEDGER.md` row. Do not confuse a field note with a scored
+`BENCH-NNN` task, and do not move observational data into the scored ledger to
+make it look more rigorous than it is.
+
 ## No cross-tool collaboration
 
 Tools are run on isolated copies of the brief. Claude must not incorporate or be influenced by another tool's output when producing its own artefact for a task. The comparison window opens only after all four tool runs are complete and artefacts are saved.

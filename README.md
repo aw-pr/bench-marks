@@ -36,6 +36,14 @@ See `MODELS.md` for the full policy.
 
 Results are written up as posts in the iTone series "What four AI subscriptions actually do". Each post covers one or more bench tasks, shares the scorecard, and draws a narrow, data-backed conclusion. The goal is specificity: not "Claude is better" but "on deterministic algorithmic tasks under 200 lines, Claude produced working code in one pass; Cursor required three correction cycles".
 
+## Field notes
+
+`field-notes/` is an un-scored, narrative stream for real-project observations
+that are not fair four-tool comparisons: multi-model timelines, automation
+incidents, and production telemetry from the Autometta fleet. Field notes are
+never scored against `rubric.md` and never appear in `LEDGER.md` — they have
+their own `field-notes/INDEX.md`. See `field-notes/README.md`.
+
 ## Repo structure
 
 ```
@@ -47,6 +55,10 @@ bench-marks/
   templates/
     brief-template.md    Task brief template
     scorecard-template.md Scorecard template
+  field-notes/
+    README.md            What the un-scored stream is for
+    TEMPLATE.md          Field-note template
+    INDEX.md             Rolling index, separate from LEDGER.md
   tasks/
     <task-id>/
       brief.md           The task brief (identical input to all tools)
