@@ -1,0 +1,36 @@
+# The second fan-out task, structurally unlike T3 for the same reason T2 is
+# unlike T1: a lever should not be judged on one question. T3 is Go and
+# package-shaped; T4 is Swift and file-shaped.
+id: T4-swift-declared-types
+repo_key: fractals
+model: claude-opus-5
+
+# See T3 for why this allowlist exists. Only the sub-agent lever may run here.
+levers:
+  - subagent_hygiene
+
+allowed_tools: "Read,Grep,Glob,Bash,Agent,Task"
+disallowed_tools: "WebSearch,WebFetch"
+
+prompt: |
+  In this repository, look at every Swift source file under apple/. For each
+  file, name the classes, structs, enums and actors it declares. Answer as a
+  concise list, one line per file.
+
+# Ground truth, grep over tracked Swift sources on 2026-09-18. The key picks
+# types whose names do NOT match their filename, so listing the directory is
+# not enough to pass:
+#   BifurcationCloudSampler  lives in BifurcationSampler.swift
+#   EngineNavigator, Gesture, GestureKind  live in Navigation.swift
+#   ReferenceOrbitGenerator, ReferenceOrbitRequest  live in ReferenceOrbit.swift
+#   HUDSnapshot, RenderSceneState  live in FractalRenderer.swift
+#   BigComplex  lives in BigFixed.swift
+answer_key:
+  must_mention:
+    - BifurcationCloudSampler
+    - EngineNavigator
+    - ReferenceOrbitGenerator
+    - HUDSnapshot
+    - BigComplex
+
+priming: ""

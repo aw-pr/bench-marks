@@ -108,6 +108,10 @@ levers:
     arms:
       control:   { subagent_prompt: dump }
       treatment: { subagent_prompt: conclusions }
+    tasks:
+      - T3-go-package-types
+      - T4-swift-declared-types
+    metric: parent_input_tokens
     preflight:
       - fixture_pair: true
     status: INCONCLUSIVE

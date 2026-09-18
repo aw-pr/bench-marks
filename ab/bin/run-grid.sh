@@ -11,7 +11,27 @@ set -uo pipefail
 lever="${1:?usage: run-grid.sh <lever> <repeats> [task...]}"
 repeats="${2:?}"; shift 2
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-tasks=("$@"); [[ ${#tasks[@]} -gt 0 ]] || tasks=("$here"/tasks/*.yaml)
+tasks=("$@")
+# A lever may name the only tasks it can be measured on. subagent_hygiene does:
+# T1/T2 deny Agent, so running it there produces two identical no-delegation
+# arms -- which is precisely how its first run came back a confident null.
+lever_tasks="$(yq -r ".levers.${lever}.tasks // [] | join(\" \")" "$here/levers.yaml")"
+if [[ ${#tasks[@]} -eq 0 && -n "$lever_tasks" ]]; then
+  for tid in $lever_tasks; do tasks+=("$here/tasks/${tid}.yaml"); done
+fi
+if [[ ${#tasks[@]} -eq 0 ]]; then
+  # Default to the whole corpus, minus tasks that restrict themselves to other
+  # levers. Named explicitly on the command line a restricted task still runs
+  # (and run-cell.sh refuses it if the lever does not match) -- the filter here
+  # only stops the default grid picking up a fixture built for someone else.
+  tasks=()
+  for t in "$here"/tasks/*.yaml; do
+    tl="$(yq -r '.levers // [] | join(" ")' "$t")"
+    [[ -n "$tl" && " $tl " != *" $lever "* ]] && continue
+    tasks+=("$t")
+  done
+fi
+[[ ${#tasks[@]} -gt 0 ]] || { echo "no tasks match lever '$lever'" >&2; exit 1; }
 
 "$here/bin/preflight.sh" "$lever" || { echo "grid refused: preflight failed for $lever" >&2; exit 1; }
 

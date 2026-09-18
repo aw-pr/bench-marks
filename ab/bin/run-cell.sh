@@ -42,6 +42,17 @@ allowed="$(yq -r '.allowed_tools // "Read,Grep,Glob,Bash"' "$task_file")"
 # sub-agent.
 disallowed="$(yq -r '.disallowed_tools // ""' "$task_file")"
 
+# A task may restrict itself to named levers. T3/T4 allow Agent so the
+# sub-agent lever can actually delegate, which makes their tool_calls
+# incomparable with every other lever's -- a sub-agent's calls never reach the
+# parent stream. Refuse rather than warn: silently counting a delegated run
+# against a non-delegated baseline is the exact failure the gate exists to stop.
+task_levers="$(yq -r '.levers // [] | join(" ")' "$task_file")"
+if [[ -n "$task_levers" ]] && [[ " $task_levers " != *" $lever "* ]]; then
+  echo "run-cell: task $task_id is restricted to levers [$task_levers]; refusing to run it for '$lever'" >&2
+  exit 65
+fi
+
 [[ -d "$repo" ]] || { echo "task repo does not exist: $repo" >&2; exit 66; }
 
 # --- arm construction: the ONLY thing that may differ between arms ----------
