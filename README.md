@@ -92,3 +92,13 @@ bench-marks/
       cursor/            Cursor output artefacts (if any)
       gemini/            Gemini output artefacts (if any)
 ```
+
+## Licence
+
+MIT, see [LICENSE](LICENSE). The harness, the task fixtures and the write-ups
+are all reusable with attribution.
+
+The findings are measurements of a specific corpus on specific dates, not
+general claims about the models named. Several of them reversed once the
+fixtures were checked, which is recorded in `ab/RESULTS.md` rather than tidied
+away; read the caveats before quoting a number.
