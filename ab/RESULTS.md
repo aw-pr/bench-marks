@@ -108,51 +108,88 @@ structure rather than answer-key terms.
 
 ---
 
-## subagent_hygiene — VOID: the lever could not fire
+## subagent_hygiene — INCONCLUSIVE: the model will not delegate
 
-**Status:** first run 2026-09-18 is void and is not reported as a result. A
-corrected run is in progress against new fixtures.
+**Status:** run twice. The first run (2026-09-18, T1/T2) is **void**; the second
+(2026-09-18, T3/T4, harness `d454600`) is valid and inconclusive, for a reason
+that is itself the finding.
 
-**What happened.** All 20 cells carried `Agent` and `Task` in
-`disallowed_tools`, and `subagent_stats.spawned` is `0` in every one. The two
-arms differed only by an `--append-system-prompt` telling the model how to
-brief a sub-agent, given to a model that could not spawn one. Both arms were
-therefore the same run, and the -4.2% cost difference they produced was the
-harness measuring itself.
+### The valid run
 
-**This is the `ast_grep` failure repeating**, which is the part worth recording.
-There the treatment arm was told to prefer a tool and silently kept using grep;
-here it was told how to delegate and silently could not. Both produced a
-confident null from arms that were never different, and in both cases the
-number looked plausible enough to explain rather than check. The first write-up
-of this run duly explained it, attributing the null to the corpus being too
-small to need delegation. That explanation was wrong and, worse, it was
-reasonable -- which is how an unfirable lever becomes a finding.
+20 cells, 2 fan-out tasks x 2 arms x n=5. Gate 10/10 in both arms.
 
-**Why the denial was there, and why it was right.** A sub-agent's tool calls
-never appear in the parent stream, so a delegated run under-counts `tool_calls`,
-the metric every other lever compares. Deleting the denial to suit this lever
-would have quietly corrupted the rest of the registry. The fix is fixtures of
-its own: T3 and T4 permit `Agent`, and both directions are now enforced -- a
-task may name the levers allowed to use it, and a lever may name the only tasks
-it may run on. `run-cell.sh` refuses the mismatch rather than recording a
+| Metric | Control | Treatment | Delta | Per task |
+|---|---:|---:|---:|---|
+| tool calls | 3.5 | 4.0 | +14.3% | T3 +0.0%, T4 +33.3% |
+| cost USD | 0.1724 | 0.1836 | +6.5% | T3 −0.1%, T4 +12.1% |
+| output tokens | 2044 | 2042 | −0.1% | T3 −5.4%, T4 +3.4% |
+| cache read tokens | 163580 | 192262 | +17.5% | T3 +24.1%, T4 +11.0% |
+
+Every figure is inside the noise floor and four of six metrics disagree in sign
+between the two tasks. Nothing here is a result.
+
+**`subagent_stats.spawned` is 0 in all 20 cells.** `Agent` and `Task` were
+allowed this time -- the argv confirms it -- and both tasks were built to need
+breadth: T3 wants exported types from 57 Go files across 13 packages, T4 wants
+declared types from 17 Swift files. The treatment arm was told, in the system
+prompt, how to brief a sub-agent. Opus 5 delegated zero times and answered
+everything with Bash.
+
+So the instruction was inert, and the arms were identical again -- but this time
+for a reason that is a finding rather than a fixture bug.
+
+### The finding: availability plus instruction is not adoption. Third instance.
+
+This harness has now produced the same result three times, with three different
+tools, and it is the most durable thing in this file:
+
+| Lever | Offered | Instructed | Used |
+|---|---|---|---|
+| `ast_grep` | binary on PATH | named, with syntax, in the system prompt | 0 of 6 cells |
+| `codegraph` | MCP registered fleet-wide | a whole skill telling agents to prefer it | never measured; the tool was gone for weeks and nothing noticed |
+| `subagent_hygiene` | `Agent` allowed, tasks built for fan-out | told how to brief a sub-agent | 0 of 20 cells |
+
+Three levers, three attempts to change tool selection by making a capability
+available and describing it, and no change in behaviour any of the three times.
+The model uses what it is used to. That is not a Claude-specific quirk to
+report; it is a constraint on this whole method: **a lever whose treatment is
+"the model should prefer X" cannot be measured by prompt-level A/B.** To
+measure it you must remove the alternative, which changes the question into
+something else.
+
+For this lever the corollary is practical: an instruction about how sub-agents
+should report back is worth nothing on task shapes where the model does not
+spawn one, and on cold repository comprehension it does not. BENCH-008 saw the
+one case where it did delegate -- Sonnet, T1, `Agent` permitted -- and it failed
+the gate after 20 tool calls, against 3/3 passes in 6-12 calls with `Agent`
+denied. The available evidence says delegation on comprehension work is a
+pessimisation before it is a saving.
+
+**What would make it measurable.** A task the model cannot complete alone --
+one exceeding its context, or a genuinely parallel workload -- so delegation is
+forced rather than suggested. That is a different experiment from the one this
+lever was written for, and a corpus of two comprehension tasks cannot reach it.
+
+### The void run
+
+The first attempt carried `Agent` and `Task` in `disallowed_tools` on both arms,
+so the arms could not differ. It returned −4.2% on cost, and the first write-up
+explained that null as a property of the corpus: the tasks being too small to
+need delegation. The explanation was plausible, and wrong. An unfirable lever
+produced a number, and the number got a story.
+
+The denial was not careless -- a sub-agent's tool calls never reach the parent
+stream, so delegation under-counts `tool_calls`, the metric every other lever
+compares. Weakening it for everyone to suit this lever would have corrupted the
+registry. The fix was fixtures of its own, plus enforcement in both directions:
+a task may name the levers permitted to use it, and a lever may name the only
+tasks it may run on. `run-cell.sh` refuses the mismatch rather than recording a
 corrupted cell.
 
-**Prior evidence, unchanged and still the reason this lever is interesting.**
-BENCH-008's smoke runs saw Sonnet fail T1's gate after 20 tool calls and one
-delegation with `Agent` permitted, then pass 3/3 in 6-12 calls with `Agent`
-denied. If that reproduces under control, permitting delegation on cold
-comprehension makes a model both worse and more expensive -- which would make
-the instruction this lever tests less valuable than simply not delegating.
-
-**Metric note for the corrected run.** `tool_calls` is not comparable on T3/T4
-for the reason above, so the lever is judged on parent-context tokens
-(`input_tokens`, `cache_read_input_tokens`), which is what its question actually
-asks about, plus the gate.
-
-**Raw:** the void run is kept as `runs/subagent_hygiene.void-agent-disallowed.jsonl`.
-A lever that could not fire and a lever that fired and showed nothing are
-different findings, and only the first one is true here.
+**Raw:** `runs/subagent_hygiene.jsonl` (valid), and
+`runs/subagent_hygiene.void-agent-disallowed.jsonl` (void, kept deliberately --
+a lever that could not fire and a lever that fired and showed nothing are
+different findings).
 
 ---
 
