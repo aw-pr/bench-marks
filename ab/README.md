@@ -3,12 +3,28 @@
 Answers one question per lever: **does this lever change the cost of reaching
 the same answer, and by how much?**
 
+## The vocabulary
+
+Five words do all the work here, so they are worth fixing up front.
+
+- **Lever** -- one thing you can switch on or off: a cheaper model, an
+  architecture map in the system prompt, a search tool on PATH.
+- **Arm** -- one side of the comparison. *Control* has the lever off,
+  *treatment* has it on. Nothing else may differ between them.
+- **Cell** -- one task, in one arm, run once. A cell is the unit that gets
+  metered and written to `runs/<lever>.jsonl`.
+- **Repeat (`n`)** -- how many times each cell is run. `n=5` means five runs of
+  every task in every arm.
+- **Gate** -- correctness as pass/fail against an answer key, never a score.
+  Cost is compared only across runs that passed, because the cost of reaching a
+  wrong answer is not a number worth comparing.
+
 It is not a second rubric. `rubric.md` scores *quality*, and quality is not what
-these levers move — CodeGraph, prompt caching, model tiering and repo priming
-almost all leave the answer identical and change what it cost to get there.
-Trying to read them off the quality rubric is what produced BENCH-006's 27–27
-tie and BENCH-007's saturated 30/30. The rubric was not wrong; it was being
-asked a question it cannot answer.
+these levers move: model tiering, prompt caching and repo priming mostly leave
+the answer identical and change what it cost to get there. Trying to read them
+off the quality rubric is what produced a 27-27 tie on one task and a saturated
+30/30 on another. The rubric was not wrong, it was being asked a question it
+cannot answer.
 
 ## What this fixes about BENCH-006
 
@@ -22,7 +38,7 @@ closed:
 | self-reported token counts | metered: `claude -p --output-format json` returns real `usage` and `total_cost_usd` |
 | tool calls counted by hand | counted from `stream-json` `tool_use` blocks |
 | one lever (codegraph) | a lever registry; each is one row in `levers.yaml` |
-| correctness scored 1–5 | correctness is a **gate**, not a score — see below |
+| correctness scored 1-5 | correctness is a **gate**, not a score -- see below |
 
 ## Method
 
@@ -51,7 +67,7 @@ argued from the transcript rather than read off the numbers.
 
 **Cold per run.** Every run is a fresh `claude -p` session. Task order is
 randomised across repeats so no arm systematically benefits from a warm cache.
-Note that `cache_read_input_tokens` is non-zero even on a trivial cold prompt —
+Note that `cache_read_input_tokens` is non-zero even on a trivial cold prompt --
 that is the shared system-prompt cache, identical across arms, so it is a
 constant rather than a confound. It is recorded anyway.
 
@@ -72,23 +88,18 @@ Captured per run, all from the CLI's own accounting:
 ## Pre-flight is a hard gate
 
 `bin/preflight.sh` refuses to run a lever whose machinery is absent, because a
-missing tool does not fail loudly — it silently degrades the treatment arm into
+missing tool does not fail loudly -- it silently degrades the treatment arm into
 the control arm, and the experiment then reports "no difference" for a lever
 that never ran. That is a false negative that would kill a rollout on
 manufactured evidence.
 
-This is not hypothetical. On 2026-08-23, when this harness was written,
-`codegraph` was **not installed** — `/opt/homebrew/bin/codegraph` did not
-exist, exactly as `token-maxing/TOKEN-SPEND-TODO.md` warned it would ("it will
-break on a node upgrade and need re-linking"). Three repos
-(`bench-marks`, `fractals-from-the-90s`, `token-maxing`) still registered it in
-`.mcp.json`, and the `codegraph-first` skill still instructed agents to prefer
-it. The fractals index was also 39 changed files stale, last built 2026-07-20.
-
-Had the codegraph A/B simply been run that day, both arms would have used
-grep/Read, the result would have read "no measurable difference", and the
-rollout decision in `TOKEN-SPEND-TODO.md` item 1 would have been settled
-wrongly by a tool that was not there.
+This is not hypothetical. The first lever this harness was built for,
+`codegraph`, turned out not to be installed on the day it was due to run, while
+three repos still registered it and a skill still told agents to prefer it.
+Without the pre-flight both arms would have quietly used grep, the result would
+have read "no measurable difference", and a rollout decision would have been
+settled by a tool that was not there. The full account is in the codegraph
+section of `RESULTS.md`.
 
 The pre-flight therefore checks, per lever: the binary resolves, the MCP server
 answers, and any index is newer than the repo's last commit. Any failure is a

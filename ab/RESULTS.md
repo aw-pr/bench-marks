@@ -5,9 +5,32 @@ cannot run honestly says so and why, rather than being quietly absent.
 
 Raw records are in `runs/<lever>.jsonl`, one JSON object per cell.
 
+## Routing guide
+
+The one piece of this file meant to be acted on. Both rows are about **cold
+repository comprehension**, because that is what the corpus contains; nothing
+here speaks to bulk edits, classification or extraction.
+
+| Task shape | Cheapest tier that holds the gate | Evidence |
+|---|---|---|
+| Narrative trace: follow a value through a call chain | Sonnet 5 | `model_tier` (Opus 5 buys nothing), `model_tier_haiku` (Haiku fails 3 of 5) |
+| Enumerative lookup: which callers touch X | Sonnet 5 | `model_tier`; Haiku holds the gate but costs 75.6% more |
+
+Read as: **route down from Opus to Sonnet, and stop there.** Opus 5 showed no
+quality advantage over Sonnet on either shape while costing 3.5x more. One tier
+lower the gate starts failing on narrative work, and on enumerative work the
+cheaper tier is not actually cheaper.
+
+A note on the noise floor, since it governs every figure below: two grep-vs-grep
+runs of the same configuration disagreed by 33 percentage points, which puts the
+harness floor at roughly +/-20% at n=3 over two tasks. A delta smaller than that
+is not an effect. Where a lever's two tasks disagree in sign, the per-task
+spread is the result and the headline is a summary of something that did not
+happen twice.
+
 ---
 
-## model_tier_haiku — Sonnet 5 vs Haiku 4.5
+## model_tier_haiku -- Sonnet 5 vs Haiku 4.5
 
 **Status:** run 2026-09-18, 20 cells (2 tasks x 2 arms x n=5), harness `a9a78b2`.
 
@@ -58,17 +81,17 @@ has now been measured down to Haiku and stops paying at Sonnet.
 
 ---
 
-## repo_priming — architecture map present vs absent
+## repo_priming -- architecture map present vs absent
 
 **Status:** run 2026-09-18, 20 cells (2 tasks x 2 arms x n=5), harness `a9a78b2`.
 
 | Metric | Control | Treatment | Delta |
 |---|---:|---:|---:|
 | gate pass | 10/10 | 10/10 | none |
-| tool calls | 9.5 | 6.0 | −36.8% |
-| cost USD | 0.4250 | 0.2805 | −34.0% |
-| wall-clock | 23.7s | 17.2s | −27.5% |
-| output tokens | 2962 | 2176 | −26.6% |
+| tool calls | 9.5 | 6.0 | -36.8% |
+| cost USD | 0.4250 | 0.2805 | -34.0% |
+| wall-clock | 23.7s | 17.2s | -27.5% |
+| output tokens | 2962 | 2176 | -26.6% |
 
 No gate movement, so wherever cost fell it is the same answer reached for less.
 But the aggregate above hides the shape of the effect, and two caveats decide
@@ -78,8 +101,8 @@ how far it generalises.
 
 | Per task | Metric | Control | Treatment | Delta |
 |---|---|---:|---:|---:|
-| T1-orbit-trace | tool calls | 16 | 9 | −43.8% |
-| | cost USD | 0.7513 | 0.4515 | −39.9% |
+| T1-orbit-trace | tool calls | 16 | 9 | -43.8% |
+| | cost USD | 0.7513 | 0.4515 | -39.9% |
 | T2-viewport-consumers | tool calls | 3 | 3 | 0.0% |
 | | cost USD | 0.0986 | 0.1095 | +11.1% |
 | | wall-clock | 7.6s | 10.4s | +37.5% |
@@ -108,7 +131,7 @@ structure rather than answer-key terms.
 
 ---
 
-## subagent_hygiene — INCONCLUSIVE: the model will not delegate
+## subagent_hygiene -- INCONCLUSIVE: the model will not delegate
 
 **Status:** run twice. The first run (2026-09-18, T1/T2) is **void**; the second
 (2026-09-18, T3/T4, harness `d454600`) is valid and inconclusive, for a reason
@@ -121,8 +144,8 @@ that is itself the finding.
 | Metric | Control | Treatment | Delta | Per task |
 |---|---:|---:|---:|---|
 | tool calls | 3.5 | 4.0 | +14.3% | T3 +0.0%, T4 +33.3% |
-| cost USD | 0.1724 | 0.1836 | +6.5% | T3 −0.1%, T4 +12.1% |
-| output tokens | 2044 | 2042 | −0.1% | T3 −5.4%, T4 +3.4% |
+| cost USD | 0.1724 | 0.1836 | +6.5% | T3 -0.1%, T4 +12.1% |
+| output tokens | 2044 | 2042 | -0.1% | T3 -5.4%, T4 +3.4% |
 | cache read tokens | 163580 | 192262 | +17.5% | T3 +24.1%, T4 +11.0% |
 
 Every figure is inside the noise floor and four of six metrics disagree in sign
@@ -173,7 +196,7 @@ lever was written for, and a corpus of two comprehension tasks cannot reach it.
 ### The void run
 
 The first attempt carried `Agent` and `Task` in `disallowed_tools` on both arms,
-so the arms could not differ. It returned −4.2% on cost, and the first write-up
+so the arms could not differ. It returned -4.2% on cost, and the first write-up
 explained that null as a property of the corpus: the tasks being too small to
 need delegation. The explanation was plausible, and wrong. An unfirable lever
 produced a number, and the number got a story.
@@ -193,7 +216,7 @@ different findings).
 
 ---
 
-## model_tier — Opus 5 vs Sonnet 5
+## model_tier -- Opus 5 vs Sonnet 5
 
 **Status:** run 2026-08-23, 12 cells (2 tasks x 2 arms x n=3), harness `5f14fa9`.
 **Full write-up:** [BENCH-008](../tasks/BENCH-008/scorecard.md)
@@ -201,21 +224,21 @@ different findings).
 | Metric | Opus 5 | Sonnet 5 | Delta |
 |---|---:|---:|---:|
 | gate pass | 6/6 | 6/6 | none |
-| tool calls | 7.5 | 4.5 | −40.0% |
-| cost USD | 0.3852 | 0.1096 | −71.6% |
-| wall-clock | 46.7s | 17.9s | −61.7% |
+| tool calls | 7.5 | 4.5 | -40.0% |
+| cost USD | 0.3852 | 0.1096 | -71.6% |
+| wall-clock | 46.7s | 17.9s | -61.7% |
 
 No quality separation, so the cost delta is real saving rather than a cheaper
-wrong answer. Holds across both task shapes (−71.4% narrative, −72.2%
+wrong answer. Holds across both task shapes (-71.4% narrative, -72.2%
 enumerative).
 
 **Routing guide, first row:** cold repository comprehension and dependency
-lookup route to Sonnet. Scope this narrowly — see the scorecard's "what this
+lookup route to Sonnet. Scope this narrowly -- see the scorecard's "what this
 does not support".
 
 ---
 
-## codegraph — RETIRED, never measured
+## codegraph -- RETIRED, never measured
 
 Retired 2026-08-23 without ever producing a number. Recorded here rather than
 deleted, because "we tried it and it lost" and "we could never run the test"
@@ -225,22 +248,22 @@ are different findings and only one of them is true.
 failures, either sufficient on its own: it declares `engines: node ">=20.0.0
 <25.0.0"` against an installed node 26.5.0, and its global npm prefix pointed
 inside a version-pinned Homebrew Cellar path, so the node upgrade took the
-symlink with it. `TOKEN-SPEND-TODO.md` predicted exactly this — *"it will break
-on a node upgrade and need re-linking"* — and the prediction was right without
+symlink with it. `TOKEN-SPEND-TODO.md` predicted exactly this -- *"it will break
+on a node upgrade and need re-linking"* -- and the prediction was right without
 being acted on, which is the more interesting half.
 
 `bin/preflight.sh` refused the lever, and that refusal is the whole point of
 the gate. With codegraph absent the treatment arm would have silently fallen
-back to grep/Read — the control arm's toolset — both arms would have produced
+back to grep/Read -- the control arm's toolset -- both arms would have produced
 identical numbers, and this file would now report "no measurable difference"
 for a lever that never ran.
 
 **Why it was retired rather than reinstalled.** Reinstalling needs a pinned
 node@20 and a moved npm prefix, and then buys an index that must be rebuilt per
 repo and goes stale silently: the fractals index was built 2026-07-20, 39 files
-behind HEAD. Against that, the measured baseline is cheap — BENCH-008 answered
+behind HEAD. Against that, the measured baseline is cheap -- BENCH-008 answered
 both harness tasks with plain Grep/Read in 1-15 tool calls on repos of 3k-41k
-lines — and the only prior evidence, BENCH-006 at n=1, was a rubric tie whose
+lines -- and the only prior evidence, BENCH-006 at n=1, was a rubric tie whose
 noted failure mode was the graph being *confidently wrong* about edges. A tool
 that is expensive to keep honest and unproven when honest is not worth the
 node pin.
@@ -248,9 +271,9 @@ node pin.
 **What was removed.** 40 `.mcp.json` registrations across the estate (29 of
 them already pointing at nothing), the `codegraph-first` skill that told
 claude_code/codex/cursor to prefer it, its control-plane registration, and four
-synced skill copies. `emergence-lab` was left alone — another session holds it.
+synced skill copies. `emergence-lab` was left alone -- another session holds it.
 
-**What replaced it.** `ast_grep` — same question, no index. See its section
+**What replaced it.** `ast_grep` -- same question, no index. See its section
 below. If that lever also fails to beat grep, the correct reading is that no
 discovery tool is warranted at this repo size, and both retirements were right.
 
@@ -262,7 +285,7 @@ path). Both are generic and outlive codegraph.
 
 ---
 
-## ast_grep — INCONCLUSIVE: the treatment arm never fired
+## ast_grep -- INCONCLUSIVE: the treatment arm never fired
 
 Ran twice, n=3, two tasks, 12 cells each. Gate: 12/12 passed in both arms both
 times. **Neither run measured ast-grep**, because in all six treatment cells of
@@ -272,7 +295,7 @@ rather than as the win the second run's numbers appear to show.
 | run | tool calls (paired median delta) | what it looks like |
 |---|---|---|
 | 1, uninstrumented | **+11.8%** | ast-grep is worse |
-| 2, instrumented | **−21.7%** | ast-grep is much better |
+| 2, instrumented | **-21.7%** | ast-grep is much better |
 
 Same lever, same tasks, same n, opposite signs. That alone should stop anyone
 reporting either number, and the instrumentation says why.
@@ -293,7 +316,7 @@ second wrong in the more expensive direction.
 
 **Three things this does establish, none of them about ast-grep:**
 
-1. **The noise floor here is roughly ±20% at n=3 over two tasks.** Two
+1. **The noise floor here is roughly +/-20% at n=3 over two tasks.** Two
    grep-vs-grep runs differed by 33 percentage points of apparent effect. Any
    lever claiming less than about a 20% delta on this task set is
    unmeasurable as configured. That is a property of the harness, not of any
@@ -303,7 +326,7 @@ second wrong in the more expensive direction.
    said to prefer it for structural questions. The model used grep anyway, six
    times out of six. Availability plus instruction is not adoption.
 3. **That is the same failure that made `codegraph-first` harmless-looking for
-   weeks** — doctrine asserting a tool should be preferred, with nothing
+   weeks** -- doctrine asserting a tool should be preferred, with nothing
    measuring whether it was. Retiring the skill removed the assertion; this
    result shows the assertion would not have worked even had the tool existed.
 
@@ -311,10 +334,10 @@ second wrong in the more expensive direction.
 `Bash(grep:*)` in the treatment arm so structural search is the only route, and
 accept that this measures "ast-grep vs no text search" rather than "ast-grep vs
 grep". The honest version of the original question may simply not be reachable
-by prompt-level A/B — the model prefers the tool it knows, and that preference
+by prompt-level A/B -- the model prefers the tool it knows, and that preference
 is itself the answer for a low-hassle-tool decision.
 
-**Standing recommendation, unchanged and now better supported:** at 3k–41k
+**Standing recommendation, unchanged and now better supported:** at 3k-41k
 lines, plain Grep/Read passes the gate every time in 1-21 tool calls. ast-grep
 is installed and costs nothing to keep (one static binary, no index, no
 registration), so it stays available for the structural queries where regex
@@ -326,7 +349,7 @@ Raw: `runs/ast_grep.jsonl` (instrumented), `runs/ast_grep.uninstrumented.jsonl`
 
 ---
 
-## prompt_cache — OBSERVATIONAL only
+## prompt_cache -- OBSERVATIONAL only
 
 The CLI exposes no flag to disable prompt caching, so there is no control arm
 to build and this can never be a true A/B by this method. Recorded so the lever

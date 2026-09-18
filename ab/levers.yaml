@@ -201,8 +201,11 @@ levers:
       narrative trace. Cost deltas deliberately omitted: efficiency is compared
       only over runs passing in both arms, so T1 drops to n=2 and any saving
       quoted from it would be averaging over exactly the cases where the cheap
-      tier worked. Routing guide second row: enumerative lookup may route to
-      Haiku, narrative tracing stays at Sonnet.
+      tier worked. On T2, where both arms passed 5/5 and the comparison is
+      sound, Haiku is the MORE expensive arm: +75.6% cost and twice the tool
+      calls. So no routing row: Haiku is wrong three times in five on one task
+      and dearer on the other. Cold repository comprehension has now been
+      measured down to Haiku and stops paying at Sonnet.
 
   prompt_cache:
     todo_item: "2"
