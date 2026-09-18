@@ -7,9 +7,17 @@ Two rules drive the output:
    The cost of reaching a wrong answer is not a number worth averaging, and a
    lever that looks cheap because it fails fast is not a saving.
 
-2. Deltas are paired per task, never a difference of grand means. An unusually
-   expensive task landing more often in one arm would otherwise move the
-   headline figure on its own.
+2. Runs are aggregated per task before the arms are compared, so an unusually
+   expensive task landing more often in one arm cannot move the headline on
+   its own.
+
+   Note what the headline row is and is not. It compares each ARM's median of
+   per-task medians; it is not the median of per-task DELTAS. With a two-task
+   corpus those differ sharply: the arm-level figure is dominated by whichever
+   task is larger in absolute terms, so a lever that helps one task and not the
+   other still reports a large headline. The per-task breakdown printed beneath
+   each metric is the honest view, and is what the write-up should quote when
+   the two tasks disagree.
 
 Medians rather than means: n is small by design and one runaway run should not
 carry the result.
@@ -85,7 +93,7 @@ def main(paths):
             print("\n  No run passed the gate. No efficiency comparison is meaningful.")
             continue
 
-        print(f"\nPaired deltas over {len(tasks)} task(s) that passed in both arms"
+        print(f"\nArm medians over {len(tasks)} task(s) that passed in both arms"
               "  (treatment vs control, negative = treatment cheaper)")
         header = f"  {'metric':<16}{'control':>12}{'treatment':>12}{'delta':>12}{'delta %':>10}"
         print(header)
@@ -107,6 +115,18 @@ def main(paths):
             p = pct(tm, cm)
             print(f"  {label:<16}{fmt.format(cm):>12}{fmt.format(tm):>12}"
                   f"{fmt.format(d):>12}{(f'{p:+.1f}%' if p is not None else '—'):>10}")
+            if len(tasks) > 1:
+                per = []
+                for task, cmed, tmed in zip(tasks, c_meds, t_meds):
+                    tp = pct(tmed, cmed)
+                    per.append(f"{task.split('-')[0]} {tp:+.1f}%" if tp is not None else f"{task.split('-')[0]} —")
+                spread = "  ".join(per)
+                flag = ""
+                sig = [pct(tm_, cm_) for cm_, tm_ in zip(c_meds, t_meds)]
+                sig = [x for x in sig if x is not None]
+                if len(sig) > 1 and (max(sig) > 0) != (min(sig) > 0):
+                    flag = "   <- tasks DISAGREE in sign"
+                print(f"  {'':<16}{'per task:':>12} {spread}{flag}")
 
         n_per_cell = min(
             len([r for r in ok if r["task"] == t and r["arm"] == a])

@@ -34,9 +34,16 @@ is itself a result: a lever that halves cost while doubling the failure rate
 has not helped.
 
 **Paired.** Same task, same model, same prompt. Arms differ by exactly one
-lever. The reported figure is the paired per-task delta, not a difference of
-grand means, so an unusually hard task cannot swing the result by landing in
-one arm more often.
+lever. Runs are aggregated per task before the arms are compared, so an
+unusually hard task cannot swing the result by landing in one arm more often.
+
+Read the headline row carefully: it compares each arm's median of per-task
+medians, which is not the same as the median of per-task deltas. On a two-task
+corpus the larger task dominates it, so a lever that helps one task and not the
+other still shows a large headline figure. `analyse.py` prints the per-task
+spread beneath every metric and marks the metrics whose tasks disagree in sign.
+When they disagree, the spread is the result and the headline is a summary of
+something that did not happen twice.
 
 **Repeated.** n≥3 per cell. A single run cannot distinguish a real effect from
 sampling noise, which is the main reason BENCH-006's split verdict had to be
@@ -95,7 +102,7 @@ ab/
   levers.yaml        lever registry: how each is switched on and off
   bin/preflight.sh   per-lever machinery check; refuses rather than warns
   bin/run-cell.sh    one run: one task x one arm x one repeat
-  bin/analyse.py     aggregate runs into paired per-lever deltas
+  bin/analyse.py     aggregate runs into per-lever arm medians
   tasks/*.yaml       corpus: prompt + machine-checkable answer key
   runs/*.jsonl       raw run records, one JSON object per run
 ```
@@ -105,7 +112,7 @@ ab/
 ```sh
 ab/bin/preflight.sh <lever>              # refuses if the machinery is absent
 ab/bin/run-cell.sh <task> <lever> <arm> <repeat>
-ab/bin/analyse.py ab/runs/*.jsonl        # paired deltas, medians, failure rates
+ab/bin/analyse.py ab/runs/*.jsonl        # arm medians, per-task spread, failure rates
 ```
 
 Results land in `RESULTS.md` and a `BENCH-NNN` scorecard is written only when a
