@@ -91,25 +91,30 @@ levers:
       treatment: { priming: present }
     preflight:
       - fixture_pair: true
-    status: PARTIAL
-    ran: 2026-09-18
+    status: REFUTED (as stated)
+    ran: 2026-09-18 (twice; the first run is void)
     result: >
-      20 cells (2 tasks x 2 arms x n=5). Gate 10/10 in both arms. The headline
-      reads -36.8% tool calls and -34.0% cost, but the whole effect is T1
-      (-43.8% / -39.9%); T2 is flat on tool calls and worse on cost, wall-clock
-      and output tokens, and the two tasks disagree in sign on four of six
-      metrics. The aggregate looks uniform only because analyse.py compares
-      arm-level medians and T1 is an order of magnitude larger.
-      Two caveats decide how far this generalises. The fixtures are a 6-line and
-      a 4-line map, not the 20-30 line architecture map the hypothesis
-      describes; and T1's map names four of that task's five answer-key terms
-      near-verbatim, which is closer to putting the answer in the system prompt
-      than to orienting an agent. T2's map names no answer-key term and moved
-      nothing.
-      Honest claim: naming the relevant files in the prompt cuts the cost of
-      finding them. Whether a generic architecture map helps is untested. Needs
-      fixtures of comparable length for both tasks, naming structure rather than
-      answer-key terms, before it can be called validated.
+      Valid run: 20 cells, gate 10/10 in both arms, and the map is a COST.
+      Cost +20.8%, wall-clock +18.6%, cache reads +33.7%, tool calls flat
+      (T1 9->10, T2 2->2). Both tasks move the same direction by similar
+      amounts on cost and wall-clock, the first time two tasks have agreed in
+      this harness. The mechanism is plain: the map is prompt weight paid for
+      every turn, and it bought no fewer round trips. Magnitude sits on the
+      +/-20% noise floor so do not quote it; the direction is what holds.
+      The first run reported -34.0% cost and was written up as validating the
+      hypothesis. It measured recall, not orientation: T1's priming named all
+      four of that task's answer-key terms and described how they connect, and
+      T2's named two of three plus the dependency the task asks for. The maps
+      also differed in kind and length between tasks, so the arms were not
+      comparable across tasks either. Void run kept as
+      runs/repo_priming.void-answer-in-priming.jsonl.
+      Scope: two tasks, one repository, conventional layout, both questions
+      answerable by a few greps. A map may still earn its place where layout is
+      not guessable. What is refuted is the general claim that a map is a cheap
+      win worth adding everywhere.
+    guard: >
+      preflight refuses this lever if any priming block names one of its task's
+      answer-key terms. Run against the fixtures it replaces, it refuses both.
 
   subagent_hygiene:
     todo_item: "5"

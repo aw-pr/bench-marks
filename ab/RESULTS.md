@@ -83,51 +83,78 @@ has now been measured down to Haiku and stops paying at Sonnet.
 
 ## repo_priming -- architecture map present vs absent
 
-**Status:** run 2026-09-18, 20 cells (2 tasks x 2 arms x n=5), harness `a9a78b2`.
+**Status:** run twice. The first run (2026-09-18) is **void**; the second
+(2026-09-18, harness `1c24a92`) is valid and **reverses its finding**.
 
-| Metric | Control | Treatment | Delta |
-|---|---:|---:|---:|
-| gate pass | 10/10 | 10/10 | none |
-| tool calls | 9.5 | 6.0 | -36.8% |
-| cost USD | 0.4250 | 0.2805 | -34.0% |
-| wall-clock | 23.7s | 17.2s | -27.5% |
-| output tokens | 2962 | 2176 | -26.6% |
+### The valid run
 
-No gate movement, so wherever cost fell it is the same answer reached for less.
-But the aggregate above hides the shape of the effect, and two caveats decide
-how far it generalises.
+20 cells, 2 tasks x 2 arms x n=5, both arms given the identical 32-line map.
+Gate 10/10 in both arms.
 
-**The whole effect is T1. T2 moved the other way.**
+| Metric | Control | Treatment | Delta | Per task |
+|---|---:|---:|---:|---|
+| cost USD | 0.3034 | 0.3666 | **+20.8%** | T1 +20.2%, T2 +24.6% |
+| wall-clock | 16.5s | 19.6s | +18.6% | T1 +18.8%, T2 +18.0% |
+| tool calls | 5.5 | 6.0 | +9.1% | T1 +11.1%, T2 +0.0% |
+| cache read tokens | 251676 | 336559 | +33.7% | T1 +43.2%, T2 +1.7% |
 
-| Per task | Metric | Control | Treatment | Delta |
-|---|---|---:|---:|---:|
-| T1-orbit-trace | tool calls | 16 | 9 | -43.8% |
-| | cost USD | 0.7513 | 0.4515 | -39.9% |
-| T2-viewport-consumers | tool calls | 3 | 3 | 0.0% |
-| | cost USD | 0.0986 | 0.1095 | +11.1% |
-| | wall-clock | 7.6s | 10.4s | +37.5% |
+**The map costs more and finds nothing faster.** Tool calls are flat (T1 9 to
+10, T2 2 to 2), so the map did not reduce search at all. Cost and wall-clock
+both rise by roughly a fifth, and they rise on **both tasks, in the same
+direction, by similar amounts** -- which is the first time in this harness two
+tasks have agreed. The mechanism is unremarkable once stated: the map is prompt
+weight that is paid for on every turn, and it bought no fewer round trips.
 
-T1 is a large win well clear of the noise floor. T2 is flat on tool calls and
-slightly worse on everything else. The headline reads as a uniform third because
-`analyse.py` takes the mean of the two per-task medians, and T1 is an order of
-magnitude larger in absolute terms, so it dominates. One task improved; the
-other did not.
+**Read the size honestly.** +20.8% sits right on the +/-20% noise floor, so the
+magnitude is not reliable. What is reliable is the direction: four metrics, two
+tasks, same sign throughout, no metric favouring the map. The safe claim is
+"no saving, plausibly a modest penalty", not "costs 20% more".
 
-**The fixtures are a 6-line and a 4-line map, not the 20-30 line map the
-hypothesis describes.** Whatever this measured, it was not the thing item 4
-proposes writing. And T1's priming block names `ReferenceOrbit`, `BigFixed`,
-`FractalRenderer` and `FractalMetalView` -- four of that task's five answer-key
-terms, near-verbatim. That is much closer to putting the answer in the system
-prompt than to orienting an agent in an unfamiliar tree, which is the more
-plausible reading of why T1 moved so far and T2, whose 4-line map names no
-answer-key term, did not move at all.
+### Why the first run said the opposite
 
-**So: promising, not validated.** The honest claim is that *naming the relevant
-files in the system prompt* cuts the cost of finding them, which is close to
-tautological. Whether a generic architecture map helps an agent that does not
-already have the answer handed to it is untested, and the fixtures need
-rewriting before it can be: a map of comparable length for both tasks, naming
-structure rather than answer-key terms.
+The first run reported **-34.0% cost and -36.8% tool calls** and was written up
+here as validating the hypothesis. It measured something else.
+
+T1's priming block named `ReferenceOrbit`, `BigFixed`, `FractalRenderer` and
+`FractalMetalView` -- all four of that task's four answer-key terms -- and then
+described how they connect, which is the question restated. T2's named the
+`scene` and `nav` packages and asserted that `internal/viewport` is consumed by
+scene composition and the navigation engine, which is that task's answer. The
+treatment arm was not oriented, it was told. A -43.8% saving on T1 was recall
+from the system prompt.
+
+The two maps also differed in kind -- T1's answer-shaped and six lines, T2's
+generic and four -- so the arms were not comparable across tasks either. That
+is the more likely explanation for the sign disagreement on four of six metrics
+than the noise floor, which was the explanation offered at the time.
+
+Both tasks now use one identical 32-line map giving the shape of the tree:
+module, package count, binary count, test convention, where the Swift sources
+and build artefacts live, what is not part of either build. No dependency facts
+at all. The length matches the hypothesis, which describes a 20-30 line
+architecture map rather than the 4-6 lines first measured.
+
+### What this means for the hypothesis
+
+The claim was that a tight architecture map at the top of `CLAUDE.md` or
+`AGENTS.md` cuts the cost of orientation. On this corpus it does not. It adds
+roughly a fifth to the bill and saves no round trips.
+
+**Scope the conclusion.** Two tasks, one repository, both questions answerable
+by a handful of greps against a tree whose layout is conventional. A map most
+plausibly earns its place where the layout is *not* guessable -- unusual
+directory conventions, a monorepo with many entry points, generated code that
+should be ignored -- and none of that is represented here. What this refutes is
+the general form of the claim: that a map is a cheap win worth adding
+everywhere. On a conventionally laid-out repo it is a cost.
+
+**Guard added.** `bin/preflight.sh` now refuses this lever if any priming block
+names one of its task's answer-key terms, listing the offenders. Substring
+matched, because the gate is. Run against the fixtures it replaces, it refuses
+both.
+
+**Raw:** `runs/repo_priming.jsonl` (valid), and
+`runs/repo_priming.void-answer-in-priming.jsonl` (void).
 
 ---
 
