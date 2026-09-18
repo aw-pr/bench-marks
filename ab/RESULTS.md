@@ -24,17 +24,37 @@ its cost delta readable as real saving. One tier lower the tie breaks, and it
 breaks by **task shape rather than uniformly**: Haiku is perfect on enumerative
 lookup and fails the narrative trace three times in five.
 
-**The cost deltas are not quotable and are omitted deliberately.** Efficiency is
-compared only across runs passing in both arms, so Haiku's three failures drop
-T1 to n=2 and the analyser flags it. Quoting a -27.8% cost saving off that would
-be averaging over exactly the cases where the cheap tier worked and discarding
-the ones where it did not -- which is how a tier that fails 30% of the time
-looks like a bargain. The gate is the finding; the saving is unmeasured.
+**On T1 the cost is genuinely unmeasurable.** Efficiency is compared only across
+runs passing in both arms, so Haiku's three failures drop T1 to n=2 and the
+analyser refuses to treat it as a result. A saving computed from those two
+survivors would be an average over exactly the cases where the cheap tier
+worked, with the failures discarded: the arithmetic by which a tier that fails
+three times in five looks like a bargain.
 
-**Routing guide, second row:** enumerative lookup -- "which callers touch X",
-answerable by enumeration -- may route to Haiku. Narrative tracing -- following
-a value through a call chain -- stays at Sonnet. Do not read this as a general
-Haiku verdict on n=5 over two tasks; read it as one task-shape boundary found.
+**On T2 the cost is perfectly measurable, and Haiku is the more expensive arm.**
+Both arms passed 5/5, so nothing is excluded:
+
+| T2-viewport-consumers | Sonnet 5 | Haiku 4.5 | Delta |
+|---|---:|---:|---:|
+| gate pass | 5/5 | 5/5 | none |
+| median cost USD | 0.0205 | 0.0360 | +75.6% |
+| median tool calls | 1 | 2 | +100% |
+
+Sonnet answered T2 with a single Grep in all five runs. Haiku needed two calls
+at the median and nine in two of the five.
+
+**So there is no routing row here.** The obvious recommendation -- send
+enumerative lookup to the cheaper tier -- survives the gate and then fails on
+cost, which is the one place it was supposed to pay. On the task Haiku can do
+reliably it costs more than Sonnet; on the task where it might have saved
+something it is wrong three times in five. Across these two task shapes there is
+no case for routing to Haiku at all.
+
+**What this does not say.** Two tasks, n=5, one repository. This is not a
+general verdict on Haiku 4.5, and a cheaper tier may well pay on task shapes not
+represented here -- bulk mechanical edits, classification, extraction. It says
+that *cold repository comprehension*, in both the shapes this corpus contains,
+has now been measured down to Haiku and stops paying at Sonnet.
 
 ---
 
@@ -50,43 +70,89 @@ Haiku verdict on n=5 over two tasks; read it as one task-shape boundary found.
 | wall-clock | 23.7s | 17.2s | −27.5% |
 | output tokens | 2962 | 2176 | −26.6% |
 
-**Clears the noise floor.** Every metric moves the same direction by roughly a
-third, against a floor of +/-20% established by the two disagreeing `ast_grep`
-runs. No gate movement, so this is the same answer reached for less.
+No gate movement, so wherever cost fell it is the same answer reached for less.
+But the aggregate above hides the shape of the effect, and two caveats decide
+how far it generalises.
 
-**TOKEN-SPEND-TODO item 4 is validated.** A 20-30 line architecture map at the
-top of `CLAUDE.md` / `AGENTS.md` cuts roughly a third of the orientation cost.
-The remaining work is rollout, not measurement.
+**The whole effect is T1. T2 moved the other way.**
+
+| Per task | Metric | Control | Treatment | Delta |
+|---|---|---:|---:|---:|
+| T1-orbit-trace | tool calls | 16 | 9 | −43.8% |
+| | cost USD | 0.7513 | 0.4515 | −39.9% |
+| T2-viewport-consumers | tool calls | 3 | 3 | 0.0% |
+| | cost USD | 0.0986 | 0.1095 | +11.1% |
+| | wall-clock | 7.6s | 10.4s | +37.5% |
+
+T1 is a large win well clear of the noise floor. T2 is flat on tool calls and
+slightly worse on everything else. The headline reads as a uniform third because
+`analyse.py` takes the mean of the two per-task medians, and T1 is an order of
+magnitude larger in absolute terms, so it dominates. One task improved; the
+other did not.
+
+**The fixtures are a 6-line and a 4-line map, not the 20-30 line map the
+hypothesis describes.** Whatever this measured, it was not the thing item 4
+proposes writing. And T1's priming block names `ReferenceOrbit`, `BigFixed`,
+`FractalRenderer` and `FractalMetalView` -- four of that task's five answer-key
+terms, near-verbatim. That is much closer to putting the answer in the system
+prompt than to orienting an agent in an unfamiliar tree, which is the more
+plausible reading of why T1 moved so far and T2, whose 4-line map names no
+answer-key term, did not move at all.
+
+**So: promising, not validated.** The honest claim is that *naming the relevant
+files in the system prompt* cuts the cost of finding them, which is close to
+tautological. Whether a generic architecture map helps an agent that does not
+already have the answer handed to it is untested, and the fixtures need
+rewriting before it can be: a map of comparable length for both tasks, naming
+structure rather than answer-key terms.
 
 ---
 
-## subagent_hygiene — conclusions vs file dumps
+## subagent_hygiene — VOID: the lever could not fire
 
-**Status:** run 2026-09-18, 20 cells (2 tasks x 2 arms x n=5), harness `a9a78b2`.
+**Status:** first run 2026-09-18 is void and is not reported as a result. A
+corrected run is in progress against new fixtures.
 
-| Metric | Control | Treatment | Delta |
-|---|---:|---:|---:|
-| gate pass | 10/10 | 10/10 | none |
-| cost USD | 0.3820 | 0.3660 | −4.2% |
-| tool calls | 7.0 | 9.0 | +28.6% |
-| wall-clock | 21.3s | 26.4s | +23.9% |
-| output tokens | 2921 | 2977 | +1.9% |
+**What happened.** All 20 cells carried `Agent` and `Task` in
+`disallowed_tools`, and `subagent_stats.spawned` is `0` in every one. The two
+arms differed only by an `--append-system-prompt` telling the model how to
+brief a sub-agent, given to a model that could not spawn one. Both arms were
+therefore the same run, and the -4.2% cost difference they produced was the
+harness measuring itself.
 
-**No effect.** −4.2% on cost is far inside the +/-20% noise floor and cannot be
-distinguished from zero at n=5. The tool-call and wall-clock figures move the
-wrong way by a similar margin, which is itself consistent with noise rather than
-with a real penalty.
+**This is the `ast_grep` failure repeating**, which is the part worth recording.
+There the treatment arm was told to prefer a tool and silently kept using grep;
+here it was told how to delegate and silently could not. Both produced a
+confident null from arms that were never different, and in both cases the
+number looked plausible enough to explain rather than check. The first write-up
+of this run duly explained it, attributing the null to the corpus being too
+small to need delegation. That explanation was wrong and, worse, it was
+reasonable -- which is how an unfirable lever becomes a finding.
 
-**What this does not say.** It does not say the hygiene instruction is wrong. It
-says the effect is not detectable on these two tasks, and there is a structural
-reason to expect that: both corpus tasks are small enough that the parent
-answers them in 6-10 tool calls without heavy delegation, so there is barely a
-sub-agent transcript for the instruction to shrink. The lever was designed
-against a claim about *fan-out* cost and the corpus does not fan out.
+**Why the denial was there, and why it was right.** A sub-agent's tool calls
+never appear in the parent stream, so a delegated run under-counts `tool_calls`,
+the metric every other lever compares. Deleting the denial to suit this lever
+would have quietly corrupted the rest of the registry. The fix is fixtures of
+its own: T3 and T4 permit `Agent`, and both directions are now enforced -- a
+task may name the levers allowed to use it, and a lever may name the only tasks
+it may run on. `run-cell.sh` refuses the mismatch rather than recording a
+corrupted cell.
 
-**TOKEN-SPEND-TODO item 5 is not validated and not refuted.** Testing it
-honestly needs a task whose control arm actually delegates and returns a large
-dump. That is a corpus gap, not a result.
+**Prior evidence, unchanged and still the reason this lever is interesting.**
+BENCH-008's smoke runs saw Sonnet fail T1's gate after 20 tool calls and one
+delegation with `Agent` permitted, then pass 3/3 in 6-12 calls with `Agent`
+denied. If that reproduces under control, permitting delegation on cold
+comprehension makes a model both worse and more expensive -- which would make
+the instruction this lever tests less valuable than simply not delegating.
+
+**Metric note for the corrected run.** `tool_calls` is not comparable on T3/T4
+for the reason above, so the lever is judged on parent-context tokens
+(`input_tokens`, `cache_read_input_tokens`), which is what its question actually
+asks about, plus the gate.
+
+**Raw:** the void run is kept as `runs/subagent_hygiene.void-agent-disallowed.jsonl`.
+A lever that could not fire and a lever that fired and showed nothing are
+different findings, and only the first one is true here.
 
 ---
 
@@ -136,7 +202,7 @@ for a lever that never ran.
 node@20 and a moved npm prefix, and then buys an index that must be rebuilt per
 repo and goes stale silently: the fractals index was built 2026-07-20, 39 files
 behind HEAD. Against that, the measured baseline is cheap — BENCH-008 answered
-both harness tasks with plain Grep/Read in 1–7 tool calls on repos of 3k–41k
+both harness tasks with plain Grep/Read in 1-15 tool calls on repos of 3k-41k
 lines — and the only prior evidence, BENCH-006 at n=1, was a rubric tie whose
 noted failure mode was the graph being *confidently wrong* about edges. A tool
 that is expensive to keep honest and unproven when honest is not worth the
@@ -193,8 +259,8 @@ second wrong in the more expensive direction.
 1. **The noise floor here is roughly ±20% at n=3 over two tasks.** Two
    grep-vs-grep runs differed by 33 percentage points of apparent effect. Any
    lever claiming less than about a 20% delta on this task set is
-   unmeasurable as configured — that is a property of the harness, and it
-   applies to `repo_priming` and `subagent_hygiene` before they are run.
+   unmeasurable as configured. That is a property of the harness, not of any
+   one lever, and both levers run on 2026-09-18 were sized against it.
 2. **An `--append-system-prompt` nudge does not reliably change tool
    selection.** The treatment prompt named the binary, gave its syntax, and
    said to prefer it for structural questions. The model used grep anyway, six
@@ -212,7 +278,7 @@ by prompt-level A/B — the model prefers the tool it knows, and that preference
 is itself the answer for a low-hassle-tool decision.
 
 **Standing recommendation, unchanged and now better supported:** at 3k–41k
-lines, plain Grep/Read passes the gate every time in 1–16 tool calls. ast-grep
+lines, plain Grep/Read passes the gate every time in 1-21 tool calls. ast-grep
 is installed and costs nothing to keep (one static binary, no index, no
 registration), so it stays available for the structural queries where regex
 genuinely cannot express the question. It is not worth steering toward, and no
@@ -223,23 +289,10 @@ Raw: `runs/ast_grep.jsonl` (instrumented), `runs/ast_grep.uninstrumented.jsonl`
 
 ---
 
-## repo_priming — READY, not yet run
-
-Fixtures exist: each corpus task carries a `priming` block injected into the
-treatment arm via `--append-system-prompt`. `TOKEN-SPEND-TODO` item 4.
-
-## subagent_hygiene — READY, not yet run
-
-Promoted in priority by an observation from BENCH-008's smoke runs: with
-`Agent` permitted, Sonnet failed T1's gate after 20 tool calls and one
-delegation; with `Agent` denied it passed 3/3 in 6–12 calls. If controlled
-running reproduces that, permitting delegation on cold comprehension makes a
-model both worse and more expensive. `TOKEN-SPEND-TODO` item 5.
-
 ## prompt_cache — OBSERVATIONAL only
 
 The CLI exposes no flag to disable prompt caching, so there is no control arm
 to build and this can never be a true A/B by this method. Recorded so the lever
 is not mistaken for untested when it is untestable here. `cache_read_input_tokens`
 is captured on every run; BENCH-008 saw 376k (Opus) and 260k (Sonnet) cache
-reads per task-pair, so caching is demonstrably active.
+reads (a mean of the two per-task medians), so caching is demonstrably active.
