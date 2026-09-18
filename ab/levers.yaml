@@ -118,8 +118,38 @@ levers:
     arms:
       control:   { model: claude-opus-5 }
       treatment: { model: claude-sonnet-5 }
-    extra_arms:
-      - { model: claude-haiku-4-5-20251001 }
+    preflight:
+      - model_reachable: true
+    status: RUN
+    ran: 2026-08-23
+    result: >
+      12 cells (2 tasks x 2 arms x n=3). Gate 6/6 in both arms, so no quality
+      separation. Sonnet 5 took 40% fewer tool calls and cost 71.6% less, and
+      the delta held across both task shapes. Well clear of the +/-20% noise
+      floor. Wrote the routing guide's first row: cold repository comprehension
+      and dependency lookup route to Sonnet. See RESULTS.md and BENCH-008.
+    note: >
+      The Haiku arm this entry once carried as extra_arms was never runnable --
+      run-grid.sh and run-cell.sh both take exactly control and treatment, so an
+      extra_arms key was inert documentation. Split into model_tier_haiku below,
+      paired against Sonnet rather than Opus because the open question is
+      whether the guide gets a row BELOW its current recommendation; re-pairing
+      against Opus would only re-measure a delta this row already has.
+
+  model_tier_haiku:
+    todo_item: "3"
+    question: >
+      Does Haiku 4.5 still hold the answer-key gate on the task classes Sonnet 5
+      passes, and at what saving? This is the next row down in the routing guide.
+    prior: >
+      model_tier found no quality separation between Opus 5 and Sonnet 5 on
+      these two tasks -- the gate did not discriminate at all, which is why the
+      cost delta was readable as real saving. Whether the gate starts to
+      discriminate one tier lower is exactly what is unknown; a failed gate here
+      is a useful result, not a wasted run.
+    arms:
+      control:   { model: claude-sonnet-5 }
+      treatment: { model: claude-haiku-4-5-20251001 }
     preflight:
       - model_reachable: true
     status: READY

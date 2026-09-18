@@ -84,6 +84,9 @@ case "$lever" in
   model_tier)
     check_model_reachable "${MODEL:-claude-sonnet-5}"
     ;;
+  model_tier_haiku)
+    check_model_reachable "${MODEL:-claude-haiku-4-5-20251001}"
+    ;;
   prompt_cache)
     ok "observational lever: no arm to switch, cache_read ratio is read from usage"
     ;;

@@ -60,6 +60,10 @@ case "$lever:$arm" in
       append_prompt="When you delegate to a sub-agent, have it return only its conclusion, never the file contents it read." ;;
   model_tier:control)     model="$(yq -r '.tier_control // "claude-opus-5"' "$task_file")" ;;
   model_tier:treatment)   model="$(yq -r '.tier_treatment // "claude-sonnet-5"' "$task_file")" ;;
+  model_tier_haiku:control)
+      model="$(yq -r '.haiku_control // "claude-sonnet-5"' "$task_file")" ;;
+  model_tier_haiku:treatment)
+      model="$(yq -r '.haiku_treatment // "claude-haiku-4-5-20251001"' "$task_file")" ;;
   prompt_cache:*)         : ;;
   *) echo "unknown lever:arm combination: $lever:$arm" >&2; exit 64 ;;
 esac
