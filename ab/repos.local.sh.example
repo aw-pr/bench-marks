@@ -1,0 +1,10 @@
+# Maps a task's repo_key to an absolute path on this machine.
+#
+# Copy to repos.local.sh (gitignored) and set the paths for your checkout.
+# Task files name a key, never a path, so the corpus stays machine-independent
+# and the tree stays free of anyone's home directory.
+#
+#   cp ab/repos.local.sh.example ab/repos.local.sh
+
+BENCH_REPO_fractals="$HOME/repos/fractals-from-the-90s"
+BENCH_REPO_emergence="$HOME/repos/emergence-lab"

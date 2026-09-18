@@ -1,0 +1,47 @@
+# A fan-out task: the answer needs content from 57 files across 13 packages,
+# so delegating to an explore sub-agent is the natural strategy rather than an
+# affectation. T1 and T2 are deliberately small and single-threaded; a lever
+# about sub-agent behaviour cannot be measured on them.
+id: T3-go-package-types
+repo_key: fractals
+model: claude-opus-5
+
+# ONLY this lever may use this task. Every other lever in the registry counts
+# tool calls, and a sub-agent's tool calls never reach the parent stream, so
+# running one of them here would silently under-count the metric it compares.
+# run-cell.sh refuses rather than warns; see levers.yaml's opening note.
+levers:
+  - subagent_hygiene
+
+# Agent is ALLOWED here, unlike T1/T2. That is the whole point of the fixture:
+# the control arm must be able to delegate, or both arms collapse into the same
+# no-delegation run and the lever compares a thing against itself.
+allowed_tools: "Read,Grep,Glob,Bash,Agent,Task"
+disallowed_tools: "WebSearch,WebFetch"
+
+prompt: |
+  In this repository, look at every package under internal/. For each package,
+  name the exported struct and interface types it declares. If a package
+  declares none, say so. Answer as a concise list, one line per package.
+
+# Ground truth, grep over tracked Go sources on 2026-09-18:
+#   app: Engine ProgressiveSession SessionState / bookmarks: Bookmark Store
+#   export: none / fractal: none / history: Snapshot Stack
+#   input: none / nav: EngineNavigator Gesture Navigator ViewportState
+#   palette: Palette / precision: BLASkip BLATable Complex SeriesCoefficients
+#   render: PerturbationOptions PerturbationStats Renderer Request
+#   scene: Scene / tiles: Tile / viewport: Viewport
+#
+# The key deliberately picks names that CANNOT be inferred from the package
+# name. A model that lists directories without reading them fails the gate.
+answer_key:
+  must_mention:
+    - ProgressiveSession
+    - BLATable
+    - SeriesCoefficients
+    - EngineNavigator
+    - PerturbationStats
+
+# Unused by this lever (both arms are prompt variants), present so the fixture
+# is well-formed if the task is ever reused.
+priming: ""
