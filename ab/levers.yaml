@@ -91,7 +91,13 @@ levers:
       treatment: { priming: present }
     preflight:
       - fixture_pair: true
-    status: READY
+    status: RUN
+    ran: 2026-09-18
+    result: >
+      20 cells (2 tasks x 2 arms x n=5). Gate 10/10 in both arms. Tool calls
+      -36.8%, cost -34.0%, wall-clock -27.5%, output tokens -26.6% -- every
+      metric moving the same direction by roughly a third, clear of the +/-20%
+      noise floor. Item 4 validated; what remains is rollout, not measurement.
 
   subagent_hygiene:
     todo_item: "5"
@@ -104,7 +110,17 @@ levers:
       treatment: { subagent_prompt: conclusions }
     preflight:
       - fixture_pair: true
-    status: READY
+    status: INCONCLUSIVE
+    ran: 2026-09-18
+    result: >
+      20 cells (2 tasks x 2 arms x n=5). Gate 10/10 in both arms. Cost -4.2%,
+      far inside the +/-20% noise floor and indistinguishable from zero; tool
+      calls and wall-clock moved the wrong way by a similar margin, consistent
+      with noise. Not a refutation: both corpus tasks resolve in 6-10 tool calls
+      without heavy delegation, so there is barely a sub-agent transcript for the
+      instruction to shrink. The lever asks about fan-out cost and the corpus
+      does not fan out. Testing it honestly needs a task whose control arm
+      actually delegates and returns a large dump -- a corpus gap, not a result.
 
   model_tier:
     todo_item: "3"
@@ -152,7 +168,17 @@ levers:
       treatment: { model: claude-haiku-4-5-20251001 }
     preflight:
       - model_reachable: true
-    status: READY
+    status: RUN
+    ran: 2026-09-18
+    result: >
+      20 cells (2 tasks x 2 arms x n=5). The gate discriminated for the first
+      time in this harness: Sonnet 5 10/10, Haiku 4.5 7/10, and the failures are
+      not spread evenly -- Haiku is 5/5 on the enumerative task and 2/5 on the
+      narrative trace. Cost deltas deliberately omitted: efficiency is compared
+      only over runs passing in both arms, so T1 drops to n=2 and any saving
+      quoted from it would be averaging over exactly the cases where the cheap
+      tier worked. Routing guide second row: enumerative lookup may route to
+      Haiku, narrative tracing stays at Sonnet.
 
   prompt_cache:
     todo_item: "2"

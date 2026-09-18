@@ -7,6 +7,89 @@ Raw records are in `runs/<lever>.jsonl`, one JSON object per cell.
 
 ---
 
+## model_tier_haiku — Sonnet 5 vs Haiku 4.5
+
+**Status:** run 2026-09-18, 20 cells (2 tasks x 2 arms x n=5), harness `a9a78b2`.
+
+**The gate discriminated, and that is the result.**
+
+| Task | Sonnet 5 | Haiku 4.5 |
+|---|---:|---:|
+| T1-orbit-trace (narrative) | 5/5 | **2/5** |
+| T2-viewport-consumers (enumerative) | 5/5 | 5/5 |
+
+This is the first time in this harness that the answer-key gate has separated
+two arms at all. `model_tier` found Opus and Sonnet tied 6/6, which is what made
+its cost delta readable as real saving. One tier lower the tie breaks, and it
+breaks by **task shape rather than uniformly**: Haiku is perfect on enumerative
+lookup and fails the narrative trace three times in five.
+
+**The cost deltas are not quotable and are omitted deliberately.** Efficiency is
+compared only across runs passing in both arms, so Haiku's three failures drop
+T1 to n=2 and the analyser flags it. Quoting a -27.8% cost saving off that would
+be averaging over exactly the cases where the cheap tier worked and discarding
+the ones where it did not -- which is how a tier that fails 30% of the time
+looks like a bargain. The gate is the finding; the saving is unmeasured.
+
+**Routing guide, second row:** enumerative lookup -- "which callers touch X",
+answerable by enumeration -- may route to Haiku. Narrative tracing -- following
+a value through a call chain -- stays at Sonnet. Do not read this as a general
+Haiku verdict on n=5 over two tasks; read it as one task-shape boundary found.
+
+---
+
+## repo_priming — architecture map present vs absent
+
+**Status:** run 2026-09-18, 20 cells (2 tasks x 2 arms x n=5), harness `a9a78b2`.
+
+| Metric | Control | Treatment | Delta |
+|---|---:|---:|---:|
+| gate pass | 10/10 | 10/10 | none |
+| tool calls | 9.5 | 6.0 | −36.8% |
+| cost USD | 0.4250 | 0.2805 | −34.0% |
+| wall-clock | 23.7s | 17.2s | −27.5% |
+| output tokens | 2962 | 2176 | −26.6% |
+
+**Clears the noise floor.** Every metric moves the same direction by roughly a
+third, against a floor of +/-20% established by the two disagreeing `ast_grep`
+runs. No gate movement, so this is the same answer reached for less.
+
+**TOKEN-SPEND-TODO item 4 is validated.** A 20-30 line architecture map at the
+top of `CLAUDE.md` / `AGENTS.md` cuts roughly a third of the orientation cost.
+The remaining work is rollout, not measurement.
+
+---
+
+## subagent_hygiene — conclusions vs file dumps
+
+**Status:** run 2026-09-18, 20 cells (2 tasks x 2 arms x n=5), harness `a9a78b2`.
+
+| Metric | Control | Treatment | Delta |
+|---|---:|---:|---:|
+| gate pass | 10/10 | 10/10 | none |
+| cost USD | 0.3820 | 0.3660 | −4.2% |
+| tool calls | 7.0 | 9.0 | +28.6% |
+| wall-clock | 21.3s | 26.4s | +23.9% |
+| output tokens | 2921 | 2977 | +1.9% |
+
+**No effect.** −4.2% on cost is far inside the +/-20% noise floor and cannot be
+distinguished from zero at n=5. The tool-call and wall-clock figures move the
+wrong way by a similar margin, which is itself consistent with noise rather than
+with a real penalty.
+
+**What this does not say.** It does not say the hygiene instruction is wrong. It
+says the effect is not detectable on these two tasks, and there is a structural
+reason to expect that: both corpus tasks are small enough that the parent
+answers them in 6-10 tool calls without heavy delegation, so there is barely a
+sub-agent transcript for the instruction to shrink. The lever was designed
+against a claim about *fan-out* cost and the corpus does not fan out.
+
+**TOKEN-SPEND-TODO item 5 is not validated and not refuted.** Testing it
+honestly needs a task whose control arm actually delegates and returns a large
+dump. That is a corpus gap, not a result.
+
+---
+
 ## model_tier — Opus 5 vs Sonnet 5
 
 **Status:** run 2026-08-23, 12 cells (2 tasks x 2 arms x n=3), harness `5f14fa9`.
