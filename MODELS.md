@@ -1,12 +1,40 @@
 # Model Policy
 
-## The one-lead-model rule
+## Worker and verifier tiers, chosen per stage card
 
-One lead model owns each project's trunk. Comparison happens only here, never on other repos' trunks.
+Work is authored as a stage card that declares a **worker** tier and a
+**verifier** tier, and cross-family verification is the default: a worker and a
+verifier from different model families catch each other's hallucinated-green
+results. Which model leads a given piece of work is a per-card choice, not a
+standing property of the repo.
 
-In practice: if a project's lead model is Claude Opus, then Claude Opus writes the code that lands on `main`. If a developer wants to explore whether Gemini or Codex would have done better on a specific task, they bring that task to bench-marks, run it in isolation, and score it. The result informs future lead-model decisions; it does not produce a mixed-authorship artefact that gets merged into the source repo.
+Routing between tiers is measured rather than assumed. The current guide, from
+`ab/RESULTS.md`, covers cold repository comprehension only:
 
-Rationale: mixed-model authorship on a single trunk makes debugging harder (each model has characteristic failure modes), makes the comparison meaningless (collaboration inflates results), and makes provenance impossible to track.
+| Task shape | Cheapest tier that holds the gate |
+|---|---|
+| Narrative trace: follow a value through a call chain | Sonnet 5 |
+| Enumerative lookup: which callers touch X | Sonnet 5 |
+
+Read as: route down from Opus to Sonnet, and stop there. One tier lower the gate
+starts failing on narrative work, and on enumerative work the cheaper tier is
+not actually cheaper.
+
+### Superseded: the one-lead-model rule
+
+Until 2026-06-06 this file required one lead model to own each project's trunk,
+with comparison happening only in this repo. The rationale was that mixed-model
+authorship on a single trunk makes debugging harder, inflates comparisons, and
+destroys provenance.
+
+The first and third of those are now handled without the restriction. Per-agent
+git authorship records which model wrote each commit, so provenance survives
+mixed authorship. The second still holds, and is why cross-tool comparison is
+still confined to this repo: a scored bake-off needs isolated arms, and that is
+what `tasks/` provides.
+
+Recorded rather than deleted, because the replacement is narrower than the rule
+it replaced and it is worth knowing which part was dropped.
 
 ## This repo is the exception
 
@@ -82,6 +110,12 @@ The Fable row scored **30/30**, identical to Opus. Against the prior:
   stylistic, not scored: Fable leaned on `OrderedDict`; Opus hand-rolled
   the linked list.
 
-## Updating the lead model
+## Acting on a result
 
-If bench results over several tasks consistently show a different tool outperforming the current lead model on that project's task profile, raise an issue in the source repo with a link to the relevant LEDGER.md rows. The decision to change the lead model belongs to the project owner, not the bench.
+A bench result informs how a stage card is authored: which tier to name as
+worker, which family to name as verifier. The decision belongs to the person
+authoring the card, not to the bench.
+
+Quote a result with its scope attached. Everything measured here is a specific
+corpus on a specific date, and several findings reversed once the fixtures were
+checked. The reversals are kept in `ab/RESULTS.md` rather than tidied away.
