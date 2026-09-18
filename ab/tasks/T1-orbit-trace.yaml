@@ -30,10 +30,40 @@ answer_key:
     - BigFixed
 
 # Injected into the treatment arm of the repo_priming lever only.
+# DELIBERATELY GENERIC, and identical to T2's. The version this replaced named
+# ReferenceOrbit, BigFixed, FractalRenderer and FractalMetalView and stated how
+# they connect -- four of this task's four answer-key terms, and the answer
+# itself. It measured "the answer in the system prompt", not orientation.
 priming: |
-  Repository map: a Go core under internal/ and cmd/, and a Swift app under
-  apple/FractalApp/. The deep-zoom path is Swift: ReferenceOrbit.swift computes
-  a high-precision reference orbit using BigFixed.swift fixed-point arithmetic;
-  FractalRenderer.swift binds it into the render path alongside
-  SeriesApproximation.swift; FractalMetalView.swift is the coordinator that
-  drives it. Build output under apple/FractalApp/build/ is not source.
+  Repository map.
+
+  A Mandelbrot and Julia explorer in two halves that share no code: a Go core
+  for headless image generation and export, and a native SwiftUI app for interactive
+  exploration. Neither imports the other.
+
+  Go half:
+    - Module github.com/AnthonyWest/fractals-from-the-90s, Go 1.26, ~7,800
+      lines.
+    - internal/ holds thirteen single-responsibility packages. Each owns one
+      concern and is imported by name. There is no registry, plugin mechanism
+      or dependency-injection layer, so the relationships between packages are
+      ordinary Go imports and nothing else.
+    - cmd/ holds two command binaries, each a main package in its own
+      directory.
+    - Tests are conventional _test.go files beside the code they cover, thirty
+      of them across internal/ and cmd/.
+    - testdata/golden/ holds recorded output the export tests compare against.
+
+  Swift half:
+    - apple/FractalApp/ is an Xcode project. Sources live in
+      apple/FractalApp/FractalApp/, unit tests in
+      apple/FractalApp/FractalAppTests/.
+    - The convention is one main type per file, named after the type, though
+      several files declare a few closely related types alongside it.
+    - apple/FractalApp/build/ and any DerivedData directory are build output,
+      not source. Nothing under them should be read or cited.
+
+  Supporting, not part of either build:
+    - docs/ carries architecture notes, ADRs and design records.
+    - scripts/ is repo hygiene and git hooks; tools/ holds one Python analysis
+      helper.

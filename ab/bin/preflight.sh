@@ -60,8 +60,35 @@ check_model_reachable() {
 }
 
 check_fixture_pair() {
-  local dir="$repo_root"
   ok "fixture-pair lever: arms are prompt/context variants, no external machinery required"
+}
+
+# A priming block that names the answer-key terms does not measure orientation,
+# it measures having been told the answer. The first repo_priming run did
+# exactly that -- T1's map named four of that task's four key terms and stated
+# how they connect -- and reported a -43.8% win that meant nothing. Substring
+# match, because the gate is a substring match.
+check_priming_no_leak() {
+  local leaked=0 t
+  for t in "$here"/tasks/*.yaml; do
+    local out
+    out="$(TASK="$t" python3 - <<'PYEOF'
+import os, sys, yaml
+d = yaml.safe_load(open(os.environ["TASK"])) or {}
+p = (d.get("priming") or "").lower()
+if not p.strip():
+    sys.exit(0)
+leaks = [k for k in (d.get("answer_key", {}) or {}).get("must_mention", []) if str(k).lower() in p]
+if leaks:
+    print(f"{d.get('id','?')}: {', '.join(leaks)}")
+PYEOF
+)" || true
+    if [[ -n "$out" ]]; then echo "     $out" >&2; leaked=1; fi
+  done
+  if [[ $leaked -eq 1 ]]; then
+    fail "a priming block names its own answer-key terms (listed above) -- the treatment arm would be handed the answer, not oriented"
+  fi
+  ok "no priming block names its task's answer-key terms"
 }
 
 printf '== preflight: %s (repo %s)\n' "$lever" "$repo_root"
@@ -78,7 +105,11 @@ case "$lever" in
     # No index check: the whole point of this lever is that there is nothing to
     # keep fresh. If a staleness gate is ever needed here, the lever is wrong.
     ;;
-  repo_priming|subagent_hygiene)
+  repo_priming)
+    check_fixture_pair
+    check_priming_no_leak
+    ;;
+  subagent_hygiene)
     check_fixture_pair
     ;;
   model_tier)
