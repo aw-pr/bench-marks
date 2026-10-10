@@ -5,9 +5,12 @@ id: T4-swift-declared-types
 repo_key: fractals
 model: claude-opus-5
 
-# See T3 for why this allowlist exists. Only the sub-agent lever may run here.
+# See T3 for why this allowlist exists. Of the Claude levers only the sub-agent
+# lever may run here; the codex_* levers cannot delegate and are safe.
 levers:
   - subagent_hygiene
+  - codex_tier
+  - codex_effort
 
 allowed_tools: "Read,Grep,Glob,Bash,Agent,Task"
 disallowed_tools: "WebSearch,WebFetch"

@@ -231,3 +231,43 @@ levers:
       A/B. It is measured observationally instead: cache_read_input_tokens over
       total input tokens, reported per run. Recorded here so the lever is not
       mistaken for untested when it is in fact untestable by this method.
+
+  # --- Codex levers ----------------------------------------------------------
+  # Same corpus, same gate, run through `codex exec --sandbox read-only` by
+  # run-cell.sh's codex backend. A Plus subscription reports no USD, so the cost
+  # metric is quota_pct_used: the share of the 5-hour window one answer took,
+  # read from the run's own rollout. That is only clean with nothing else using
+  # Codex, which is why these levers run overnight under bin/overnight.sh.
+  # Not comparable with the Claude levers' tool_calls: Codex has one shell tool
+  # where Claude has Read/Grep/Glob/Bash.
+
+  codex_tier:
+    todo_item: "3 (Codex)"
+    question: >
+      On cold repository comprehension, does Luna hold the answer-key gate that
+      Terra holds, and at what share of the 5-hour window?
+    prior: >
+      None for Codex. On the Claude side the gate held one tier down (Opus to
+      Sonnet) and broke two tiers down (Haiku failed the narrative trace 3/5).
+    arms:
+      control:   { model: gpt-5.6-terra, reasoning_effort: medium }
+      treatment: { model: gpt-5.6-luna,  reasoning_effort: medium }
+    preflight:
+      - codex_model_reachable: true
+    status: QUEUED
+    queued: 2026-10-10 (overnight, T1-T4 x n=5)
+
+  codex_effort:
+    todo_item: "3 (Codex)"
+    question: >
+      Does high reasoning effort buy any gate passes over medium on Terra, or
+      only spend quota? high is the default in the local Codex config, so a
+      null result changes a setting every Codex session pays for.
+    prior: none
+    arms:
+      control:   { model: gpt-5.6-terra, reasoning_effort: high }
+      treatment: { model: gpt-5.6-terra, reasoning_effort: medium }
+    preflight:
+      - codex_model_reachable: true
+    status: QUEUED
+    queued: 2026-10-10 (overnight, T1-T4 x n=5)

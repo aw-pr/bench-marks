@@ -6,12 +6,16 @@ id: T3-go-package-types
 repo_key: fractals
 model: claude-opus-5
 
-# ONLY this lever may use this task. Every other lever in the registry counts
-# tool calls, and a sub-agent's tool calls never reach the parent stream, so
-# running one of them here would silently under-count the metric it compares.
-# run-cell.sh refuses rather than warns; see levers.yaml's opening note.
+# Among the Claude levers, ONLY subagent_hygiene may use this task. Every other
+# Claude lever counts tool calls, and a sub-agent's tool calls never reach the
+# parent stream, so running one of them here would silently under-count the
+# metric it compares. run-cell.sh refuses rather than warns; see levers.yaml's
+# opening note. The codex_* levers are safe here: Codex exec cannot delegate,
+# so every command it runs is in the stream being counted.
 levers:
   - subagent_hygiene
+  - codex_tier
+  - codex_effort
 
 # Agent is ALLOWED here, unlike T1/T2. That is the whole point of the fixture:
 # the control arm must be able to delegate, or both arms collapse into the same

@@ -91,6 +91,21 @@ PYEOF
   ok "no priming block names its task's answer-key terms"
 }
 
+# Probing a Codex model costs quota, and past 100% of the 5-hour window it
+# costs paid credits without any warning. So the probe runs only with headroom.
+check_codex_model() {
+  local model="$1" limits pct
+  check_binary codex
+  limits="$("$here/bin/codex-limits.sh")" || fail "no Codex rate-limit snapshot to read; refusing to probe blind"
+  pct="$(jq -r '.primary_pct' <<<"$limits")"
+  awk -v p="$pct" 'BEGIN{exit !(p < 90)}' || fail "Codex 5-hour window at ${pct}%: a probe now would bill credits"
+  timeout 180 codex exec --json --sandbox read-only --skip-git-repo-check -m "$model" \
+      -c model_reasoning_effort=low "Reply with the single word: ok" < /dev/null 2>/dev/null \
+    | jq -e 'select(.type=="turn.completed")' >/dev/null \
+    || fail "Codex model $model did not answer a trivial prompt"
+  ok "Codex model $model reachable (5-hour window was at ${pct}%)"
+}
+
 printf '== preflight: %s (repo %s)\n' "$lever" "$repo_root"
 
 case "$lever" in
@@ -117,6 +132,13 @@ case "$lever" in
     ;;
   model_tier_haiku)
     check_model_reachable "${MODEL:-claude-haiku-4-5-20251001}"
+    ;;
+  codex_tier)
+    check_codex_model gpt-5.6-terra
+    check_codex_model gpt-5.6-luna
+    ;;
+  codex_effort)
+    check_codex_model gpt-5.6-terra
     ;;
   prompt_cache)
     ok "observational lever: no arm to switch, cache_read ratio is read from usage"
