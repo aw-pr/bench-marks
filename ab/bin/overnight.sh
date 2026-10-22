@@ -27,7 +27,7 @@ start_hhmm="${OVERNIGHT_START:-2300}"
 end_hhmm="${OVERNIGHT_END:-0600}"
 pause_at="${OVERNIGHT_PAUSE_AT:-90}"
 weekly_stop="${OVERNIGHT_WEEKLY_STOP:-95}"
-anthropic_ceiling="${OVERNIGHT_ANTHROPIC_CEILING:-0.70}"
+anthropic_ceiling="${OVERNIGHT_ANTHROPIC_CEILING:-0.90}"
 max_consecutive_errors=3
 
 mkdir -p "$here/runs"
