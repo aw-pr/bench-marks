@@ -406,7 +406,7 @@ weight that is paid for on every turn, and it bought no fewer round trips.
 
 **Read the size honestly.** +20.8% sits right on the +/-20% noise floor, so the
 magnitude is not reliable. What is reliable is the direction: four metrics, two
-tasks, same sign throughout, no metric favouring the map. The safe claim is
+tasks, and none of them moved in the map's favour. The safe claim is
 "no saving, plausibly a modest penalty", not "costs 20% more".
 
 ### Why the first run said the opposite

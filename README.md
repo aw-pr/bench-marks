@@ -105,7 +105,7 @@ expensive arm, at 75.8% above Sonnet.
 
 Tool calls were flat, so the map reduced no search at all. It was prompt weight
 paid for on every turn that bought no fewer round trips. Four metrics, two
-tasks, same sign throughout.
+tasks, and none moved in the map's favour.
 
 The first run of this lever reported **-34.0%** and was written up as validating
 the idea. It was measuring recall, not orientation: the priming blocks named the
