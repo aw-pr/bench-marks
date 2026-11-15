@@ -105,8 +105,8 @@ Per passing answer over all cells, Terra cost 1.05 points and Luna 0.61. The
 analyser's median row reads 1.0 against 0.5, the same direction at a
 resolution that cannot carry a magnitude.
 
-Luna's token deltas are beyond the Codex noise floor and agree in sign on all
-four tasks; its quota saving agrees in direction on all four. **The two
+Luna's output and reasoning deltas are beyond the Codex noise floor and agree in
+sign on all four tasks; its quota saving agrees in direction on all four. **The two
 results together are the finding: across models, fewer tokens is not less
 quota.** Luna explored more, with twice the reasoning tokens and more tool
 calls, and the window charged it a little over half as much for the answer.

@@ -263,8 +263,8 @@ levers:
       swing the same Terra arm showed on T1 across two runs that night. Luna
       drew 45% less of the 5-hour window (20 points to 11, summed over each
       arm's 20 cells; same direction on all four tasks) while spending MORE
-      tokens: output +57.4%, reasoning +97.6%, tool calls +40.0%, the token
-      deltas agreeing in sign on all four tasks. Across models, fewer tokens is
+      tokens: output +57.4%, reasoning +97.6%, tool calls +40.0%, the output
+      and reasoning deltas agreeing in sign on all four tasks. Across models, fewer tokens is
       not less quota. 24 of the night's 80 Codex cells shared the window with
       another repo's codex exec worker; on the 27 codex_tier cells that ran
       alone the gap is wider (0.92 against 0.29 points a cell). Wrote the

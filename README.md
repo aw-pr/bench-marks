@@ -53,7 +53,8 @@ did not survive a check of how the arms were built.
 
 The Codex rows are priced in share of the 5-hour window, because a Plus
 subscription reports no dollars, and they carry a lesson of their own: Luna
-spent more tokens than Terra on every task and still drew about half the quota.
+spent more output and reasoning tokens than Terra on every task and still drew
+about half the quota.
 Across models, the token count is the wrong proxy for what an answer costs.
 
 ### Route down from Opus, and stop at Sonnet
