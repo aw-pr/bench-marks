@@ -60,7 +60,7 @@ fi
 [[ -d "$repo" ]] || { echo "task repo does not exist: $repo" >&2; exit 66; }
 
 # --- arm construction: the ONLY thing that may differ between arms ----------
-extra_args=(); append_prompt=""
+extra_args=(); env_args=(); append_prompt=""
 case "$lever:$arm" in
   codegraph:control)      extra_args+=(--strict-mcp-config)
                           disallowed="${disallowed:+$disallowed,}mcp__codegraph" ;;
@@ -84,6 +84,16 @@ case "$lever:$arm" in
   codex_tier:treatment)   model="$(yq -r '.codex_tier_treatment // "gpt-5.6-luna"' "$task_file")"; effort=medium ;;
   codex_effort:control)   model="$(yq -r '.codex_effort_model // "gpt-5.6-terra"' "$task_file")"; effort=high ;;
   codex_effort:treatment) model="$(yq -r '.codex_effort_model // "gpt-5.6-terra"' "$task_file")"; effort=medium ;;
+  # Context hygiene. Control is the operator's MCP setup exactly as a headless
+  # run loads it, with tool search at its default; ENABLE_TOOL_SEARCH is unset
+  # rather than inherited so a stray shell export cannot change the regime.
+  mcp_prune:control|tool_deferral:control)
+      model="$(yq -r '.hygiene_model // "claude-sonnet-5-5"' "$task_file")"; env_args=(-u ENABLE_TOOL_SEARCH) ;;
+  mcp_prune:treatment)
+      model="$(yq -r '.hygiene_model // "claude-sonnet-5-5"' "$task_file")"; env_args=(-u ENABLE_TOOL_SEARCH)
+      extra_args+=(--strict-mcp-config) ;;
+  tool_deferral:treatment)
+      model="$(yq -r '.hygiene_model // "claude-sonnet-5-5"' "$task_file")"; env_args=(ENABLE_TOOL_SEARCH=false) ;;
   *) echo "unknown lever:arm combination: $lever:$arm" >&2; exit 64 ;;
 esac
 [[ -n "$append_prompt" ]] && extra_args+=(--append-system-prompt "$append_prompt")
@@ -92,7 +102,7 @@ esac
 stream="$(mktemp)"; trap 'rm -f "$stream" "$stream.err"' EXIT
 started="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
-codex_extra='{}'
+codex_extra='{}'; claude_extra='{}'
 if [[ "$backend" == codex ]]; then
   # Codex has no tool allowlist; read-only sandbox is its equivalent of the
   # Claude tasks' Read/Grep/Glob/Bash, and the deny list has nothing to bind to.
@@ -136,11 +146,23 @@ if [[ "$backend" == codex ]]; then
      credits_spent: (if ($a.credits != null and $b.credits != null) then ($b.credits - $a.credits) else null end)}')"
 else
 
-( cd "$repo" && timeout 900 claude -p "$prompt" \
+( cd "$repo" && env ${env_args[@]+"${env_args[@]}"} timeout 900 claude -p "$prompt" \
     --output-format stream-json --verbose \
     --model "$model" --allowedTools "$allowed" \
     ${extra_args[@]+"${extra_args[@]}"} < /dev/null ) > "$stream" 2>"$stream.err"
 rc=$?
+
+# What the session actually loaded, read from its own init event, and the size
+# of the first turn's prompt. A context lever moves the fixed prefix every turn
+# pays for; recording it lets the record prove the treatment arm differed,
+# rather than the arms quietly loading the same tool set.
+claude_extra="$(jq -c 'select(.type=="system" and .subtype=="init") | {
+    mcp_servers_connected: ([.mcp_servers[]? | select(.status=="connected")] | length),
+    mcp_tools: ([.tools[]? | select(startswith("mcp__"))] | length),
+    tool_search: ((.tools // []) | index("ToolSearch") != null)}' "$stream" 2>/dev/null | head -1)"
+prefix_tokens="$(jq -s '[.[] | select(.type=="assistant") | .message.usage] | first
+    | if . then (.input_tokens // 0) + (.cache_creation_input_tokens // 0) + (.cache_read_input_tokens // 0) else null end' "$stream" 2>/dev/null)"
+claude_extra="$(jq -nc --argjson i "${claude_extra:-null}" --argjson p "${prefix_tokens:-null}" '($i // {}) + {prefix_tokens: $p}')"
 
 # --- metrics: all from the CLI's own events --------------------------------
 result_text="$(jq -r 'select(.type=="result") | .result // ""' "$stream" 2>/dev/null | head -c 200000)"
@@ -183,8 +205,8 @@ jq -nc \
   --argjson passed "$passed" --argjson missing "$missing" \
   --argjson tool_calls "${tool_calls:-0}" --argjson tools "$tools_used" \
   --argjson bash_cmds "$bash_cmds" \
-  --argjson res "$res_json" --argjson codex "$codex_extra" \
-  --arg argv "model=$model allowed=$allowed disallowed=${disallowed:-none} extra=${extra_args[*]:-none}" \
+  --argjson res "$res_json" --argjson codex "$codex_extra" --argjson claude_extra "$claude_extra" \
+  --arg argv "model=$model allowed=$allowed disallowed=${disallowed:-none} extra=${extra_args[*]:-none}${env_args[*]:+ env=${env_args[*]}}" \
   '{task:$task, lever:$lever, arm:$arm, repeat:$repeat, model:$model,
     started_at:$started, exit_code:$rc, passed:$passed, missing_terms:$missing,
     tool_calls:$tool_calls, tools:$tools, bash_cmds:$bash_cmds, argv:$argv,
@@ -195,7 +217,7 @@ jq -nc \
     output_tokens:$res.usage.output_tokens,
     cache_read_input_tokens:$res.usage.cache_read_input_tokens,
     cache_creation_input_tokens:$res.usage.cache_creation_input_tokens,
-    subagent_stats:$res.subagent_stats} + $codex' \
+    subagent_stats:$res.subagent_stats} + $codex + $claude_extra' \
   >> "$runs_dir/${lever}.jsonl"
 
 printf '%s %s/%s rep%s  passed=%s  tool_calls=%s  cost=%s\n' \

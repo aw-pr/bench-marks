@@ -85,6 +85,8 @@ Captured per run, all from the CLI's own accounting:
 | `cache_read_input_tokens`, `cache_creation_input_tokens` | `usage` | whether caching is doing anything |
 | `total_cost_usd` | CLI | metered, not estimated |
 | `duration_ms`, `duration_api_ms`, `ttft_ms` | CLI | wall-clock and latency |
+| `prefix_tokens` | first assistant message's `usage` | the whole turn-1 prompt: system prompt, tool schemas, task; what a context lever moves |
+| `mcp_servers_connected`, `mcp_tools`, `tool_search` | `stream-json` `init` event | what the session actually loaded, so a record proves its arm |
 
 ### The Codex backend
 
@@ -145,8 +147,9 @@ settled by a tool that was not there. The full account is in the codegraph
 section of `RESULTS.md`.
 
 The pre-flight therefore checks, per lever: the binary resolves, the MCP server
-answers, and any index is newer than the repo's last commit. Any failure is a
-refusal, never a warning.
+answers, and any index is newer than the repo's last commit. For a context
+lever it launches each arm once on a trivial prompt and refuses unless the two
+arms load different tool sets. Any failure is a refusal, never a warning.
 
 ## Layout
 

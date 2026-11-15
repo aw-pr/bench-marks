@@ -297,3 +297,55 @@ levers:
       to 10) and 35.2% fewer reasoning tokens, same sign on all three tasks.
       high stays the default. To settle it: n=10 per arm on T1 alone, 20
       cells, which is where the whole difference sits.
+
+  # --- Context hygiene -------------------------------------------------------
+  # TOKEN-SPEND-TODO item 6, split in two because the harness takes exactly two
+  # arms per lever. Both levers share one control: the operator's MCP setup
+  # exactly as a headless `claude -p` loads it, with tool search (deferred tool
+  # schemas) at its default. The two controls are the same configuration, so
+  # comparing them is a free A/A check on the noise floor.
+
+  mcp_prune:
+    todo_item: "6 (prune MCP servers per session)"
+    question: >
+      With the operator's normal MCP servers loaded and tool search at its
+      default, does --strict-mcp-config with no servers cut the cost of the
+      same correct answer?
+    prior: >
+      TOKEN-SPEND-TODO item 6 asserts that each connected server's tool schemas
+      cost context before any work starts. repo_priming found that adding a
+      32-line map the task did not need cost about a fifth more, so removing
+      unused prompt weight might be the same effect with the sign reversed.
+      Against that, current Claude Code defers MCP schemas behind ToolSearch, so
+      the lever may already be banked.
+    arms:
+      control:   { mcp: operator default, tool_search: default }
+      treatment: { mcp: none (--strict-mcp-config), tool_search: default }
+    model: claude-sonnet-5-5
+    tasks:
+      - T1-orbit-trace
+      - T2-viewport-consumers
+    preflight:
+      - context_arms_differ: true
+    status: READY
+
+  tool_deferral:
+    todo_item: "6 (prefer deferred tool loading)"
+    question: >
+      What does deferred tool loading save on the same tasks, i.e. what would
+      they cost with every tool schema loaded up front?
+    prior: >
+      Tool search is on by default in headless runs on this CLI (2.1.325), so
+      control is the deferred regime and the treatment turns it off with
+      ENABLE_TOOL_SEARCH=false for the one process, without touching any
+      settings file.
+    arms:
+      control:   { mcp: operator default, tool_search: default }
+      treatment: { mcp: operator default, tool_search: "off (ENABLE_TOOL_SEARCH=false)" }
+    model: claude-sonnet-5-5
+    tasks:
+      - T1-orbit-trace
+      - T2-viewport-consumers
+    preflight:
+      - context_arms_differ: true
+    status: READY
