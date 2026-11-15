@@ -32,7 +32,7 @@ comparison axis is the model, not the tool/subscription.
 |-----|---------|-------------------|----------|----------|--------|
 | Fable | general-purpose agent (Claude Code), `model=fable`, isolated (no sight of the Opus row) | Fable (frontier-above-Opus tier) | Anthropic | 2026-07-05 | complete — see `fable/output.md` |
 | Opus | Claude Code (native) | Claude Opus 4.8 | Anthropic | 2026-07-04 | complete — see `opus/output.md` |
-| GPT-5.5 | pending (native GPT-5.5 harness, not yet run) | GPT-5.5 | OpenAI | — | pending — see `gpt-5.5/PENDING.md` |
+| GPT-5.5 | Codex CLI (`codex exec`, reasoning effort high), empty workspace holding only the brief, via `gpt-5.5/run-codex.sh` | GPT-5.5 (no substitution) | OpenAI | 2026-10-10 | run, not yet scored; see `gpt-5.5/output.md` and `gpt-5.5/PENDING.md` |
 | Gemini-Pro | pending (native Gemini-Pro harness, not yet run) | Gemini-Pro (frontier tier) | Google | — | pending — see `gemini-pro/PENDING.md` |
 
 **Fable note.** The Fable row was run on 2026-07-05 in an isolated agent
@@ -115,7 +115,10 @@ against the rubric anchors, though this is a self-scored row.
 
 ### GPT-5.5
 
-Not run — see `gpt-5.5/PENDING.md`. No score fabricated.
+Run on 2026-10-10 in Codex, not yet scored. The solution is in
+`gpt-5.5/lfu_cache.py`; its own 6 tests passed in the run's self-test,
+which is the model's claim, not the scorer's re-run. See
+`gpt-5.5/PENDING.md` for what scoring still needs. No score fabricated.
 
 ### Gemini-Pro
 

@@ -22,7 +22,11 @@ task_file="${1:-}"; lever="${2:-}"; arm="${3:-}"; repeat="${4:-1}"
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 runs_dir="$here/runs"; mkdir -p "$runs_dir"
 
-for t in yq jq claude; do command -v "$t" >/dev/null || { echo "missing dependency: $t" >&2; exit 69; }; done
+# Levers named codex_* run the same task through Codex instead of Claude; the
+# task, cwd, gate and record shape are shared so the two backends stay
+# comparable field for field.
+backend=claude; [[ "$lever" == codex_* ]] && backend=codex
+for t in yq jq "$backend"; do command -v "$t" >/dev/null || { echo "missing dependency: $t" >&2; exit 69; }; done
 
 task_id="$(yq -r '.id' "$task_file")"
 repo_key="$(yq -r '.repo_key' "$task_file")"
@@ -76,6 +80,10 @@ case "$lever:$arm" in
   model_tier_haiku:treatment)
       model="$(yq -r '.haiku_treatment // "claude-haiku-4-5-20251001"' "$task_file")" ;;
   prompt_cache:*)         : ;;
+  codex_tier:control)     model="$(yq -r '.codex_tier_control // "gpt-5.6-terra"' "$task_file")"; effort=medium ;;
+  codex_tier:treatment)   model="$(yq -r '.codex_tier_treatment // "gpt-5.6-luna"' "$task_file")"; effort=medium ;;
+  codex_effort:control)   model="$(yq -r '.codex_effort_model // "gpt-5.6-terra"' "$task_file")"; effort=high ;;
+  codex_effort:treatment) model="$(yq -r '.codex_effort_model // "gpt-5.6-terra"' "$task_file")"; effort=medium ;;
   *) echo "unknown lever:arm combination: $lever:$arm" >&2; exit 64 ;;
 esac
 [[ -n "$append_prompt" ]] && extra_args+=(--append-system-prompt "$append_prompt")
@@ -83,6 +91,50 @@ esac
 
 stream="$(mktemp)"; trap 'rm -f "$stream" "$stream.err"' EXIT
 started="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+codex_extra='{}'
+if [[ "$backend" == codex ]]; then
+  # Codex has no tool allowlist; read-only sandbox is its equivalent of the
+  # Claude tasks' Read/Grep/Glob/Bash, and the deny list has nothing to bind to.
+  allowed="codex:read-only"; disallowed=""; extra_args=(-c "model_reasoning_effort=$effort")
+  quota_before="$("$here/bin/codex-limits.sh" 2>/dev/null || echo '{}')"
+  t0=$(date +%s)
+  timeout 900 codex exec --json --sandbox read-only --skip-git-repo-check \
+    -C "$repo" -m "$model" "${extra_args[@]}" "$prompt" < /dev/null > "$stream" 2>"$stream.err"
+  rc=$?
+  wall_ms=$(( ($(date +%s) - t0) * 1000 ))
+
+  result_text="$(jq -r 'select(.type=="item.completed" and .item.type=="agent_message") | .item.text // ""' "$stream" 2>/dev/null | tail -c 200000)"
+  tool_calls="$(jq -r 'select(.type=="item.completed" and .item.type=="command_execution") | 1' "$stream" 2>/dev/null | wc -l | tr -d ' ')"
+  tools_used="$(jq -nc --argjson n "${tool_calls:-0}" 'if $n > 0 then {shell: $n} else {} end')"
+  # Commands arrive wrapped as `/bin/zsh -lc "<cmd>"`; record the inner verb.
+  bash_cmds="$(jq -rs '[.[] | select(.type=="item.completed" and .item.type=="command_execution") | .item.command // "" | sub("^\\S+ -lc "; "") | ltrimstr("\"") | ltrimstr("'"'"'") | split(" ")[0] | split("/") | .[-1]] | group_by(.) | map({(.[0]): length}) | add // {}' "$stream" 2>/dev/null)"
+  [[ -z "$bash_cmds" ]] && bash_cmds='{}'
+
+  usage="$(jq -cs '[.[] | select(.type=="turn.completed") | .usage] | {
+      input_tokens: (map(.input_tokens // 0) | add),
+      output_tokens: (map(.output_tokens // 0) | add),
+      cache_read_input_tokens: (map(.cached_input_tokens // 0) | add),
+      cache_creation_input_tokens: (map(.cache_write_input_tokens // 0) | add),
+      reasoning_output_tokens: (map(.reasoning_output_tokens // 0) | add),
+      turns: length}' "$stream" 2>/dev/null)"
+  is_error=$([[ $rc -eq 0 ]] && jq -e 'select(.type=="turn.completed")' "$stream" >/dev/null 2>&1 && echo false || echo true)
+  res_json="$(jq -nc --argjson u "${usage:-null}" --argjson wall "$wall_ms" --argjson err "$is_error" \
+    '{num_turns: $u.turns, duration_ms: $wall, duration_api_ms: null, ttft_ms: null,
+      total_cost_usd: null, is_error: $err, usage: ($u // {}), subagent_stats: null}')"
+
+  # Quota is read from this run's own rollout, found by its thread id, so a
+  # concurrent Codex session cannot be mistaken for this cell's snapshot.
+  thread="$(jq -r 'select(.type=="thread.started") | .thread_id' "$stream" 2>/dev/null | head -1)"
+  rollout="$(find "${CODEX_HOME:-$HOME/.codex}/sessions" -name "rollout-*${thread:-none}.jsonl" 2>/dev/null | head -1)"
+  quota_after="$([[ -n "$rollout" ]] && "$here/bin/codex-limits.sh" "$rollout" 2>/dev/null || echo '{}')"
+  codex_extra="$(jq -nc --argjson b "$quota_before" --argjson a "$quota_after" --argjson u "${usage:-null}" --arg effort "$effort" --arg thread "$thread" '
+    {backend: "codex", reasoning_effort: $effort, thread_id: $thread,
+     reasoning_output_tokens: $u.reasoning_output_tokens,
+     primary_pct_before: $b.primary_pct, primary_pct_after: $a.primary_pct,
+     quota_pct_used: (if ($a.primary_pct != null and $b.primary_pct != null) then ($a.primary_pct - $b.primary_pct) else null end),
+     credits_spent: (if ($a.credits != null and $b.credits != null) then ($b.credits - $a.credits) else null end)}')"
+else
 
 ( cd "$repo" && timeout 900 claude -p "$prompt" \
     --output-format stream-json --verbose \
@@ -113,6 +165,8 @@ if [[ -z "$res_json" ]]; then
   printf 'warning: no result event for %s/%s rep%s; stderr: %s\n' "$lever" "$arm" "$repeat" "$(head -c 300 "$stream.err" 2>/dev/null)" >&2
 fi
 
+fi
+
 # --- the gate: answer key --------------------------------------------------
 # Crude by design: substring presence over the final answer. It cannot judge
 # prose quality, and is not asked to -- quality is rubric.md's job. What it can
@@ -129,7 +183,7 @@ jq -nc \
   --argjson passed "$passed" --argjson missing "$missing" \
   --argjson tool_calls "${tool_calls:-0}" --argjson tools "$tools_used" \
   --argjson bash_cmds "$bash_cmds" \
-  --argjson res "$res_json" \
+  --argjson res "$res_json" --argjson codex "$codex_extra" \
   --arg argv "model=$model allowed=$allowed disallowed=${disallowed:-none} extra=${extra_args[*]:-none}" \
   '{task:$task, lever:$lever, arm:$arm, repeat:$repeat, model:$model,
     started_at:$started, exit_code:$rc, passed:$passed, missing_terms:$missing,
@@ -141,9 +195,9 @@ jq -nc \
     output_tokens:$res.usage.output_tokens,
     cache_read_input_tokens:$res.usage.cache_read_input_tokens,
     cache_creation_input_tokens:$res.usage.cache_creation_input_tokens,
-    subagent_stats:$res.subagent_stats}' \
+    subagent_stats:$res.subagent_stats} + $codex' \
   >> "$runs_dir/${lever}.jsonl"
 
 printf '%s %s/%s rep%s  passed=%s  tool_calls=%s  cost=%s\n' \
   "$task_id" "$lever" "$arm" "$repeat" "$passed" "$tool_calls" \
-  "$(jq -r 'select(.type=="result") | .total_cost_usd' "$stream" 2>/dev/null | head -1)"
+  "$([[ "$backend" == codex ]] && jq -r '"quota+" + (.quota_pct_used|tostring) + "%"' <<<"$codex_extra" || jq -r 'select(.type=="result") | .total_cost_usd' "$stream" 2>/dev/null | head -1)"

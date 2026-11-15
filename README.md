@@ -1,5 +1,7 @@
 # The Bench
 
+![Runtime](https://img.shields.io/badge/runtime-bash%20%2B%20python%203.11%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Status](https://img.shields.io/badge/status-personal%20research%20harness-orange)
+
 A personal model-evaluation harness for comparing four AI tools on identical tasks.
 
 ## Purpose
@@ -44,6 +46,11 @@ a cheaper wrong answer cannot pass as a saving.
 The one lever that paid is unglamorous: stop sending Opus to do Sonnet's job.
 Three of the five measured levers first produced a confident result that did not
 survive a check of how the arms were built.
+
+The harness now has a Codex backend as well, and two Codex levers are
+registered against it: `codex_tier` (Terra against Luna) and `codex_effort`
+(high against medium reasoning effort). Neither is in the table because neither
+has been written up yet.
 
 ### Route down from Opus, and stop at Sonnet
 
@@ -115,13 +122,30 @@ tasks. A delta smaller than that is not an effect, and the priming result sits
 right on the line: what is reliable there is the direction, not the magnitude.
 
 Scope everything to the corpus. All of it is **cold repository comprehension**
-on repos of 3k to 41k lines, in two task shapes. Nothing here speaks to bulk
+on a single repository, `fractals-from-the-90s` (a Go core and a SwiftUI app),
+in two task shapes. That repository is private, so the cells cannot be re-run
+from here, though the raw records can be re-analysed. Nothing here speaks to bulk
 edits, classification or extraction, and a cheaper tier may well pay on shapes
 the corpus does not contain.
 
 The charts are rendered from the medians in `ab/RESULTS.md` by
 `scripts/render-charts.py`; run it after any number changes. Raw records are one
 JSON object per cell under `ab/runs/`.
+
+## The scored benches
+
+The four-tool side, scored against `rubric.md`. Each row is a bench from
+[`LEDGER.md`](LEDGER.md).
+
+| Bench | Task | Result |
+|---|---|---|
+| BENCH-001 | A ~1500-word post in a fixed house style | codex 29, joint top with claude |
+| BENCH-003 | Senior-engineer code review (claude and codex only) | codex, 30 vs 29 |
+| BENCH-004 | Senior-leader strategic review (claude and codex only) | claude, 30 vs 29 |
+| BENCH-005 | Orchestrating a refactor under a dispatch contract, Opus vs Codex CLI as orchestrator | claude, 18 vs 13: both lanes escalated after two loops, and the Opus lane left an audit trail the Codex lane did not |
+| BENCH-006 | codegraph MCP against grep and Read, same model | codegraph on the verdict, from a rubric tie at 27 each |
+| BENCH-007 | An O(1) LFU cache across four frontier models | Fable 30 and Opus 30; the GPT-5.5 row is run but not yet scored, Gemini-Pro not run |
+| BENCH-008 | Opus 5 against Sonnet 5, the first `ab/` harness run | Sonnet: the same 6 of 6 gates at 71.6% less cost |
 
 ## Tools under test
 
@@ -173,14 +197,19 @@ bench-marks/
     README.md            Method: gates, arms, cells, noise floor
     RESULTS.md           One section per lever -- the findings
     levers.yaml          Lever registry and status
-    bin/                 preflight, run-cell, run-grid, analyse
+    bin/                 preflight, run-cell, run-grid, analyse, and the
+                         Codex quota reader and overnight runner
+    overnight.queue      What the overnight runner works through
   rubric.md              Scoring dimensions and anchors
   docs/img/              Rendered README charts, light and dark
   scripts/
     render-charts.py     Redraws docs/img from the ab/RESULTS.md medians
+    publish-sync.sh      Replays private-repo commits onto the public mirror
+    install-guards.sh    Arms the publish guards in scripts/git-hooks/
   MODELS.md              Worker/verifier tier policy and the routing guide
   LEDGER.md              Rolling index of all tasks
   START-PROMPT.md        Paste-ready orchestrator prompt for new tasks
+  START-FIELD-NOTE-PROMPT.md  One-off prompt that scaffolded field-notes/
   templates/
     brief-template.md    Task brief template
     scorecard-template.md Scorecard template

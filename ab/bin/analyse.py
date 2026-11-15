@@ -36,6 +36,11 @@ METRICS = [
     ("duration_ms", "wall ms", "{:.0f}"),
     ("output_tokens", "output tok", "{:.0f}"),
     ("cache_read_input_tokens", "cache read tok", "{:.0f}"),
+    # Codex records only: the subscription reports no USD, so quota share of the
+    # 5-hour window is the cost a Plus user actually pays.
+    ("input_tokens", "input tok", "{:.0f}"),
+    ("reasoning_output_tokens", "reasoning tok", "{:.0f}"),
+    ("quota_pct_used", "5h quota %", "{:.1f}"),
 ]
 
 
@@ -100,6 +105,8 @@ def main(paths):
         print("  " + "-" * (len(header) - 2))
 
         for key, label, fmt in METRICS:
+            if not any(r.get(key) is not None for r in lrows):
+                continue                          # metric this backend does not report
             c_meds, t_meds = [], []
             for task in tasks:
                 c = [r[key] for r in ok if r["task"] == task and r["arm"] == "control" and r.get(key) is not None]

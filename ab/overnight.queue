@@ -1,0 +1,11 @@
+# Overnight queue, read top to bottom by bin/overnight.sh.
+#
+#   lever <name> <repeats>             randomised grid, resumable via runs/<name>.plan
+#   job   <name> <script> <done-file>  run once; skipped once <done-file> exists
+#
+# Paths are relative to the repo root. Codex-only on purpose: the Anthropic
+# reserve is left untouched unless a non-codex lever is added here.
+
+job   bench007-gpt tasks/BENCH-007/gpt-5.5/run-codex.sh tasks/BENCH-007/gpt-5.5/output.md
+lever codex_tier   5
+lever codex_effort 5

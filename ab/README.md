@@ -65,7 +65,8 @@ something that did not happen twice.
 sampling noise, which is the main reason BENCH-006's split verdict had to be
 argued from the transcript rather than read off the numbers.
 
-**Cold per run.** Every run is a fresh `claude -p` session. Task order is
+**Cold per run.** Every run is a fresh `claude -p` session (a fresh
+`codex exec` session for a `codex_*` lever, see below). Task order is
 randomised across repeats so no arm systematically benefits from a warm cache.
 Note that `cache_read_input_tokens` is non-zero even on a trivial cold prompt --
 that is the shared system-prompt cache, identical across arms, so it is a
@@ -84,6 +85,44 @@ Captured per run, all from the CLI's own accounting:
 | `cache_read_input_tokens`, `cache_creation_input_tokens` | `usage` | whether caching is doing anything |
 | `total_cost_usd` | CLI | metered, not estimated |
 | `duration_ms`, `duration_api_ms`, `ttft_ms` | CLI | wall-clock and latency |
+
+### The Codex backend
+
+A lever whose name starts `codex_` runs the same task through
+`codex exec --json --sandbox read-only` instead of `claude -p`. The task, the
+working directory, the gate and the record shape are unchanged, so the two
+backends compare field for field. The read-only sandbox stands in for the
+Claude tasks' tool allowlist, which Codex does not have.
+
+The fields come from Codex's own events: `tool_calls` counts completed
+`command_execution` items and the token fields come from `turn.completed`.
+`total_cost_usd` is null, because a subscription reports no price. The record
+also names its `backend`, `reasoning_effort` and `thread_id`, and adds three
+measurement fields:
+
+| Field | Source | Why |
+|---|---|---|
+| `reasoning_output_tokens` | `turn.completed` usage | reasoning effort is one of the levers |
+| `quota_pct_used` | 5-hour window before and after the cell, read by `bin/codex-limits.sh` from the session rollout | what share of the window this answer cost |
+| `credits_spent` | credit balance before and after | must be 0: above 100% of the window Codex bills paid credits without warning |
+
+`quota_pct_used` is only clean when nothing else is using Codex, which is why
+these levers run overnight.
+
+## Overnight runs
+
+`bin/overnight.sh` works through `overnight.queue` unattended, between 23:00
+and 06:00 local time by default. Before every cell it checks the Codex rate
+limits: it sleeps when the 5-hour window reaches 90% and stops for the night if
+the credit balance falls, if the weekly window reaches 95%, or if three cells in
+a row error. A non-Codex lever runs only while Anthropic seven-day utilisation
+is under 90%. Each lever's randomised plan is written once to
+`runs/<lever>.plan` and consumed a line at a time, so a night cut short resumes
+where it stopped. The thresholds are environment variables (`OVERNIGHT_*`) at
+the top of the script.
+
+`bin/install-overnight.sh` schedules it as a launchd job (macOS) that fires
+daily at 22:55 under `caffeinate`, and `--remove` takes it out again.
 
 ## Pre-flight is a hard gate
 
@@ -113,7 +152,13 @@ ab/
   levers.yaml        lever registry: how each is switched on and off
   bin/preflight.sh   per-lever machinery check; refuses rather than warns
   bin/run-cell.sh    one run: one task x one arm x one repeat
+  bin/run-grid.sh    one lever's whole grid, in randomised order
   bin/analyse.py     aggregate runs into per-lever arm medians
+  bin/codex-limits.sh   latest Codex rate-limit snapshot, read from a rollout
+  bin/overnight.sh      unattended runner with the quota governor
+  bin/install-overnight.sh  launchd job for overnight.sh (macOS)
+  overnight.queue    what overnight.sh runs, top to bottom
+  repos.local.sh.example  maps each task's repo_key to a local checkout
   tasks/*.yaml       corpus: prompt + machine-checkable answer key
   runs/*.jsonl       raw run records, one JSON object per run
 ```
@@ -121,10 +166,17 @@ ab/
 ## Running it
 
 ```sh
+cp ab/repos.local.sh.example ab/repos.local.sh   # then point each key at a checkout
 ab/bin/preflight.sh <lever>              # refuses if the machinery is absent
 ab/bin/run-cell.sh <task> <lever> <arm> <repeat>
+ab/bin/run-grid.sh <lever> <repeats>     # every cell, randomised
 ab/bin/analyse.py ab/runs/*.jsonl        # arm medians, per-task spread, failure rates
 ```
+
+The runs need `claude` (or `codex` for a `codex_*` lever), `yq`, `jq` and `timeout` on
+PATH. The corpus tasks all point at one repository, `fractals-from-the-90s`,
+which is private: the raw records here can be re-analysed by anyone, but the
+cells cannot be re-run without your own repo and your own answer keys.
 
 Results land in `RESULTS.md` and a `BENCH-NNN` scorecard is written only when a
 lever produces a decision, so the ledger stays a record of conclusions rather
