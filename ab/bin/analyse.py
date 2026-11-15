@@ -36,6 +36,9 @@ METRICS = [
     ("duration_ms", "wall ms", "{:.0f}"),
     ("output_tokens", "output tok", "{:.0f}"),
     ("cache_read_input_tokens", "cache read tok", "{:.0f}"),
+    # The first turn's whole prompt: system prompt plus tool schemas plus task.
+    # A context lever moves this, and it is nearly deterministic per arm.
+    ("prefix_tokens", "turn-1 prompt", "{:.0f}"),
     # Codex records only: the subscription reports no USD, so quota share of the
     # 5-hour window is the cost a Plus user actually pays.
     ("input_tokens", "input tok", "{:.0f}"),

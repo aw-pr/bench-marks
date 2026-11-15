@@ -36,7 +36,7 @@ levers:
       the node upgrade took with it. Reinstalling costs a pinned node@20 plus a
       per-repo index that goes stale silently -- the fractals index was 39 files
       behind HEAD. Against that, BENCH-008 answered both harness tasks with
-      plain Grep/Read in 1-7 tool calls, and BENCH-006's only prior evidence
+      plain Grep/Read in 1-15 tool calls, and BENCH-006's only prior evidence
       (n=1) was a rubric tie whose noted failure mode was confident wrong edges.
       All 40 .mcp.json registrations and the codegraph-first skill were removed.
       Kept in this registry rather than deleted: "lost the A/B" and "was never
@@ -52,7 +52,7 @@ levers:
     prior: >
       Adopted 2026-08-23 as the low-hassle replacement for codegraph, on the
       argument that these repos are 3k-41k lines and BENCH-008 answered both
-      tasks in 1-7 tool calls with no graph at all. That argument predicts a
+      tasks in 1-15 tool calls with no graph at all. That argument predicts a
       SMALL or ZERO win. This lever exists to check it rather than assume it --
       if ast-grep does not beat grep here, the correct conclusion is that no
       discovery tool is warranted at this repo size, which is itself the answer.
@@ -64,7 +64,7 @@ levers:
     status: INCONCLUSIVE
     ran: 2026-08-23
     result: >
-      Ran twice at n=3. Gate 12/12 in both arms both times. Not a measurement
+      Ran twice at n=3, 12 cells each. Gate 6/6 in both arms both times. Not a measurement
       of ast-grep: instrumentation showed the treatment arm invoked grep 25
       times and ast-grep zero times across all six treatment cells, so both
       arms were grep-and-Read. The two runs disagree in sign (+11.8% then
@@ -97,8 +97,7 @@ levers:
       Valid run: 20 cells, gate 10/10 in both arms, and the map is a COST.
       Cost +20.8%, wall-clock +18.6%, cache reads +33.7%, tool calls flat
       (T1 9->10, T2 2->2). Both tasks move the same direction by similar
-      amounts on cost and wall-clock, the first time two tasks have agreed in
-      this harness. The mechanism is plain: the map is prompt weight paid for
+      amounts on cost and wall-clock. The mechanism is plain: the map is prompt weight paid for
       every turn, and it bought no fewer round trips. Magnitude sits on the
       +/-20% noise floor so do not quote it; the direction is what holds.
       The first run reported -34.0% cost and was written up as validating the
@@ -207,7 +206,7 @@ levers:
       only over runs passing in both arms, so T1 drops to n=2 and any saving
       quoted from it would be averaging over exactly the cases where the cheap
       tier worked. On T2, where both arms passed 5/5 and the comparison is
-      sound, Haiku is the MORE expensive arm: +75.6% cost and twice the tool
+      sound, Haiku is the MORE expensive arm: +75.8% cost and twice the tool
       calls. So no routing row: Haiku is wrong three times in five on one task
       and dearer on the other. Cold repository comprehension has now been
       measured down to Haiku and stops paying at Sonnet.
@@ -254,8 +253,22 @@ levers:
       treatment: { model: gpt-5.6-luna,  reasoning_effort: medium }
     preflight:
       - codex_model_reachable: true
-    status: QUEUED
-    queued: 2026-10-10 (overnight, T1-T4 x n=5)
+    status: RUN
+    ran: 2026-10-10 (overnight, harness acd529e)
+    result: >
+      40 cells (4 tasks x 2 arms x n=5), credits_spent 0 on every record. Gate
+      Terra 19/20, Luna 18/20: no separation. Luna's two misses are both T4
+      (HUDSnapshot left out of a fourteen-type file listing), inside the two-pass
+      swing the same Terra arm showed on T1 across two runs that night. Luna
+      drew 45% less of the 5-hour window (20 points to 11, summed over each
+      arm's 20 cells; same direction on all four tasks) while spending MORE
+      tokens: output +57.4%, reasoning +97.6%, tool calls +40.0%, the output
+      and reasoning deltas agreeing in sign on all four tasks. Across models, fewer tokens is
+      not less quota. 24 of the night's 80 Codex cells shared the window with
+      another repo's codex exec worker; on the 27 codex_tier cells that ran
+      alone the gap is wider (0.92 against 0.29 points a cell). Wrote the
+      routing guide's first Codex row: comprehension routes to Luna at medium.
+      See RESULTS.md and BENCH-009.
 
   codex_effort:
     todo_item: "3 (Codex)"
@@ -269,5 +282,92 @@ levers:
       treatment: { model: gpt-5.6-terra, reasoning_effort: medium }
     preflight:
       - codex_model_reachable: true
-    status: QUEUED
-    queued: 2026-10-10 (overnight, T1-T4 x n=5)
+    status: INCONCLUSIVE
+    ran: 2026-10-10/11 (overnight, harness acd529e)
+    result: >
+      40 cells, credits_spent 0. Gate high 20/20, medium 16/20: T1 2/5 at
+      medium, every miss naming the precision type "fixed-point bignum" instead
+      of BigFixed, and one T3 miss. Not a null, so the stated condition for
+      changing the default was not met. Not a separation either: the identical
+      Terra-medium configuration is codex_tier's control, run an hour earlier,
+      and scored 19/20 with T1 4/5. Pooled, medium is 35/40 against 20/20,
+      about a one-in-eight chance split if the arms were identical. Over T2-T4
+      (T1 excluded, medium n=2) medium drew 41% less of the window (17 points
+      to 10) and 35.2% fewer reasoning tokens, same sign on all three tasks.
+      high stays the default. To settle it: n=10 per arm on T1 alone, 20
+      cells, which is where the whole difference sits.
+
+  # --- Context hygiene -------------------------------------------------------
+  # TOKEN-SPEND-TODO item 6, split in two because the harness takes exactly two
+  # arms per lever. Both levers share one control: the operator's MCP setup
+  # exactly as a headless `claude -p` loads it, with tool search (deferred tool
+  # schemas) at its default. The two controls are the same configuration, so
+  # comparing them is a free A/A check on the noise floor.
+
+  mcp_prune:
+    todo_item: "6 (prune MCP servers per session)"
+    question: >
+      With the operator's normal MCP servers loaded and tool search at its
+      default, does --strict-mcp-config with no servers cut the cost of the
+      same correct answer?
+    prior: >
+      TOKEN-SPEND-TODO item 6 asserts that each connected server's tool schemas
+      cost context before any work starts. repo_priming found that adding a
+      32-line map the task did not need cost about a fifth more, so removing
+      unused prompt weight might be the same effect with the sign reversed.
+      Against that, current Claude Code defers MCP schemas behind ToolSearch, so
+      the lever may already be banked.
+    arms:
+      control:   { mcp: operator default, tool_search: default }
+      treatment: { mcp: none (--strict-mcp-config), tool_search: default }
+    model: claude-sonnet-5-5
+    tasks:
+      - T1-orbit-trace
+      - T2-viewport-consumers
+    preflight:
+      - context_arms_differ: true
+    status: BANKED (by default tool search)
+    ran: 2026-11-15 (harness 496c026, Claude Code 2.1.325)
+    result: >
+      20 cells, gate 9/10 default against 10/10 pruned. Tool search was on, so
+      the 24 MCP tools were listed by name only: pruning removed 515 tokens
+      from every turn's prompt (-1.8%, identical in every cell). On T2, where
+      both arms took one Grep and two turns every time, that is exactly what it
+      saved: 1,030 cache-read tokens and 1.2% of cost. The headline +16.2% cost
+      is T1 behaviour (one more tool call at the median); the two identical
+      controls swing that much on T1 between themselves. Fully loaded the same
+      24 schemas cost 5,867 tokens a turn, so tool search already removes 91%
+      of what this lever was meant to remove. Not worth doing for spend while
+      tool search is on.
+
+  tool_deferral:
+    todo_item: "6 (prefer deferred tool loading)"
+    question: >
+      What does deferred tool loading save on the same tasks, i.e. what would
+      they cost with every tool schema loaded up front?
+    prior: >
+      Tool search is on by default in headless runs on this CLI (2.1.325), so
+      control is the deferred regime and the treatment turns it off with
+      ENABLE_TOOL_SEARCH=false for the one process, without touching any
+      settings file.
+    arms:
+      control:   { mcp: operator default, tool_search: default }
+      treatment: { mcp: operator default, tool_search: "off (ENABLE_TOOL_SEARCH=false)" }
+    model: claude-sonnet-5-5
+    tasks:
+      - T1-orbit-trace
+      - T2-viewport-consumers
+    preflight:
+      - context_arms_differ: true
+    status: RUN
+    ran: 2026-11-15 (harness 496c026, Claude Code 2.1.325)
+    result: >
+      20 cells, gate 10/10 in both arms. Turning deferral off adds 20,558
+      tokens (+70.2%) to every turn's prompt: 15,206 for Claude Code's own
+      deferrable tools and 5,352 for the 24 MCP schemas, net of the 515 their
+      deferred listing already costs. Cost +16.9%
+      at the headline and the same sign on both tasks: T2, behaviourally
+      identical in every cell, +42.1%; T1, diluted by more turns, +14.1%.
+      Cache reads +67.8%. Deferral is the default and is what already banks
+      item 6. The action is negative: never set ENABLE_TOOL_SEARCH=false, and
+      treat a harness that cannot defer as the place pruning still pays.

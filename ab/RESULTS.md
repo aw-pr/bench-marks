@@ -3,23 +3,35 @@
 One section per lever. A lever appears here only once it has run; a lever that
 cannot run honestly says so and why, rather than being quietly absent.
 
-Raw records are in `runs/<lever>.jsonl`, one JSON object per cell.
+Raw records are in `runs/<lever>.jsonl`, one JSON object per cell. The
+vocabulary (lever, arm, cell, gate), the four corpus tasks T1 to T4 and the
+status words are defined in [`README.md`](README.md).
+
+`TOKEN-SPEND-TODO` is the private list of spend-cutting ideas these levers were
+drawn from; an "item" number refers to that list. It is not published, and
+nothing here depends on reading it. Other repositories named below
+(`fractals-from-the-90s`, `mcp-hub`, `emergence-lab`) are private too.
 
 ## Routing guide
 
-The one piece of this file meant to be acted on. Both rows are about **cold
+The one piece of this file meant to be acted on. Every row is about **cold
 repository comprehension**, because that is what the corpus contains; nothing
 here speaks to bulk edits, classification or extraction.
 
-| Task shape | Cheapest tier that holds the gate | Evidence |
-|---|---|---|
-| Narrative trace: follow a value through a call chain | Sonnet 5 | `model_tier` (Opus 5 buys nothing), `model_tier_haiku` (Haiku fails 3 of 5) |
-| Enumerative lookup: which callers touch X | Sonnet 5 | `model_tier`; Haiku holds the gate but costs 75.6% more |
+| Backend | Task shape | Cheapest tier that holds the gate | Evidence |
+|---|---|---|---|
+| Claude | Narrative trace: follow a value through a call chain | Sonnet 5 | `model_tier` (Opus 5 buys nothing), `model_tier_haiku` (Haiku fails 3 of 5) |
+| Claude | Enumerative lookup: which callers touch X | Sonnet 5 | `model_tier`; Haiku holds the gate but costs 75.8% more |
+| Codex | All four corpus tasks | Luna, medium effort | `codex_tier`: gate 18/20 against Terra's 19/20, 45% less of the 5-hour window; both misses on the Swift type listing |
 
 Read as: **route down from Opus to Sonnet, and stop there.** Opus 5 showed no
 quality advantage over Sonnet on either shape while costing 3.5x more. One tier
 lower the gate starts failing on narrative work, and on enumerative work the
 cheaper tier is not actually cheaper.
+
+On Codex, **route down from Terra to Luna.** Luna spends more tokens than Terra
+and still draws far less of the 5-hour window. Leave Terra's reasoning effort at
+`high`: `codex_effort` did not show that `medium` holds the gate.
 
 A note on the noise floor, since it governs every figure below: two grep-vs-grep
 runs of the same configuration disagreed by 33 percentage points, which puts the
@@ -27,6 +39,294 @@ harness floor at roughly +/-20% at n=3 over two tasks. A delta smaller than that
 is not an effect. Where a lever's two tasks disagree in sign, the per-task
 spread is the result and the headline is a summary of something that did not
 happen twice.
+
+---
+
+## Context hygiene -- mcp_prune and tool_deferral
+
+**Status:** run 2026-11-15, 40 cells (2 levers x 2 tasks x 2 arms x n=5) on
+Sonnet 5.5 (`claude-sonnet-5-5`), Claude Code 2.1.325, harness `496c026`. This
+is `TOKEN-SPEND-TODO` item 6, split in two because the harness takes two arms.
+
+**The claim.** Every connected MCP server's tool schemas sit in context before
+any work starts, so pruning the servers a task does not need
+(`--strict-mcp-config`) cuts cost without touching the gate.
+
+**The regime measured, which decides the answer.** Tool search is on by default
+in a headless `claude -p` on this CLI: MCP tools are listed by name and their
+schemas load only when the model calls `ToolSearch`. The operator's headless
+setup loads two user-scope servers, a notes vault and a device controller, 24
+tools between them; the fractals checkout registers no project server. Both levers
+share one control, that setup as it stands. `mcp_prune` adds
+`--strict-mcp-config` with no config. `tool_deferral` sets
+`ENABLE_TOOL_SEARCH=false` for the one process, which turns deferral off without
+touching a settings file.
+
+### What each configuration puts in front of every turn
+
+The turn-1 prompt (system prompt, tool schemas and task) is deterministic per
+configuration: every cell in an arm recorded the same figure, and the preflight
+probes reproduced it to the token. Measured on a trivial prompt, with the
+cells' own tool flags:
+
+| Configuration | Turn-1 prompt | Against the default |
+|---|---:|---:|
+| Default: 2 MCP servers, tool search on | 29,251 | -- |
+| `--strict-mcp-config`, tool search on | 28,736 | -515 (-1.8%) |
+| `--strict-mcp-config`, tool search off | 43,942 | +14,691 |
+| Default MCP servers, tool search off | 49,809 | +20,558 (+70.3%) |
+
+Read across the rows: fully loaded, the 24 MCP schemas cost 5,867 tokens a turn
+(49,809 against 43,942). Deferred, they cost 515. **Tool search already removes
+91% of what pruning was meant to remove.** And most of what tool search removes
+is not MCP at all: 15,206 tokens a turn are Claude Code's own deferrable tools
+(43,942 against 28,736), which no MCP config can touch. The third row is a
+probe, not an arm; it was not run as cells.
+
+### mcp_prune -- banked by tool search
+
+| Metric | Default | Pruned | Delta | Per task |
+|---|---:|---:|---:|---|
+| gate | 9/10 | 10/10 | -- | the one miss is T1, `BigFixed` |
+| turn-1 prompt | 29,303 | 28,788 | **-1.8%** | -1.8% on both, every cell |
+| cost USD | 0.0539 | 0.0626 | +16.2% | T1 +18.0%, T2 -1.2%, disagree |
+| cache read tokens | 94,298 | 112,158 | +18.9% | T1 +28.3%, T2 -1.8%, disagree |
+| tool calls | 3.5 | 4.0 | +14.3% | T1 +16.7%, T2 flat |
+| wall-clock | 11.7s | 12.2s | +4.0% | T1 +4.6%, T2 flat |
+
+The headline says pruning cost 16% more. It did not: the pruned arm happened to
+take one more tool call at the median on T1, and the extra turns that call
+bought outweigh a 515-token prefix many times over. The two controls below show T1 swinging by that much between
+identical arms. T2 is the clean task here, one Grep and two turns in every cell
+of both arms, and on T2 pruning saved exactly what the prefix predicts: 1,030
+cache-read tokens (two turns of 515) and 1.2% of cost.
+
+So the lever works and is worth about 2%: real, deterministic, and an order of
+magnitude under the noise floor of any task that varies its own path. Nothing
+a pruned config saves here would show up on a bill.
+
+### tool_deferral -- this is where item 6 was banked
+
+| Metric | Deferred (default) | All schemas loaded | Delta | Per task |
+|---|---:|---:|---:|---|
+| gate | 10/10 | 10/10 | -- | -- |
+| turn-1 prompt | 29,303 | 49,861 | **+70.2%** | T1 +70.1%, T2 +70.2% |
+| cache read tokens | 109,766 | 184,199 | +67.8% | T1 +66.9%, T2 +70.2% |
+| cost USD | 0.0523 | 0.0611 | **+16.9%** | T1 +14.1%, T2 +42.1% |
+| tool calls | 3.0 | 4.0 | +33.3% | T1 +40.0%, T2 flat |
+| wall-clock | 11.9s | 12.4s | +4.4% | T1 +4.8%, T2 +2.0% |
+
+Turning deferral off costs more on both tasks, in the same direction on every
+token and cost metric. The headline +16.9% sits just under the noise floor;
+read T2 instead, which is behaviourally identical in both arms (one Grep, two
+turns, every cell) and so measures nothing but the prefix: **+42.1% cost**, the
+cells spread across 0.0099-0.0103 against 0.0129-0.0147. On T1 the same prefix
+is diluted by more turns of output and tool results, and lands at +14.1%.
+Cost rises less than tokens because cache reads are the cheapest tokens on the
+bill; the extra 20k tokens a turn are almost all cache reads.
+
+### The two controls are the same configuration
+
+Both levers' control arms are the default setup, run minutes apart, one grid
+after the other. Between them: turn-1 prompt identical, T2 cost +0.1%, T1 tool calls -16.7%, T1 cache
+reads +23.8%, T1 cost -3.3%, gate 9/10 against 10/10. T2 is near-deterministic
+and T1 is not, which is why T1 deltas of the sizes above cannot be read and T2
+deltas can.
+
+### What this means for item 6
+
+**Pruning MCP servers per session: banked, do not bother.** With tool search
+on, the 24 schemas the operator loads cost 515 tokens a turn, about 2% of a
+cheap task and less of an expensive one. `--strict-mcp-config` is still the
+right hygiene for a reproducible headless run, because it pins what loads, but
+not as a spend lever.
+
+**Prefer deferred tool loading: already the default, and worth keeping.**
+Turning it off adds 70% to every turn's prompt and 14% to 42% to the cost of
+the same correct answer, with the gate unchanged. The one action this result
+supports is a negative one: never set `ENABLE_TOOL_SEARCH=false`, and treat any
+harness that cannot defer (an SDK session handed every tool up front, an older
+CLI) as the regime where pruning pays, at about 5.9k tokens a turn for these
+24 tools.
+
+**Scope.** Two tasks, one repository, one model, two MCP servers. A setup
+with many more servers raises the residual roughly in proportion, about 21
+tokens a tool here, and would need hundreds of tools to reach the noise floor. The deferral-off regime
+was measured with these 24 tools only. `duration_ms` is the CLI's own figure;
+it did not move, and process start-up, which is where MCP servers launch, was
+not timed.
+
+**Raw:** `runs/mcp_prune.jsonl`, `runs/tool_deferral.jsonl`. Each record
+carries `prefix_tokens` and what the session loaded (`mcp_servers_connected`,
+`mcp_tools`, `tool_search`), so every cell proves its arm.
+
+---
+
+## Reading the Codex levers
+
+The two Codex levers ran unattended on the night of 2026-10-10, 22:01 to 01:13
+UTC, through `bin/overnight.sh` at harness `acd529e`. Four things about how
+they were measured apply to both sections below.
+
+**No paid credits were drawn.** `credits_spent` is 0 on all 80 records, and the
+credit balance was the same at the end of the night as at the start.
+
+**The quota figure is coarse.** `quota_pct_used` is the change in a
+whole-number percentage of the 5-hour window, so a single cell usually reads 0, 1 or 2
+and a median of it is mostly ties. Quota is therefore reported here as the sum
+over an arm's cells, which is accurate to a point or two, and the analyser's
+median row is quoted only for its direction.
+
+**The night was not quiet.** A Codex worker from another repository ran
+`codex exec` from 21:58 to 22:02 and from 22:14 to 22:22 UTC, drawing on the
+same window. 24 of the 80 cells overlap it. Token counts are per thread and
+unaffected; quota is not. Each section gives the quota sums over all cells and
+over the cells that ran alone, and the two agree in direction.
+
+**The noise floor has a Codex measurement.** Terra at medium effort is the
+control arm of `codex_tier` and the treatment arm of `codex_effort`: the same
+configuration, run twice an hour apart. Between those two runs the per-task
+medians moved by up to +45% on output tokens and from -32% to +42% on reasoning
+tokens, with mixed signs, and the gate went from 19/20 to 16/20. A delta inside
+that is not an effect, and a gate gap of three passes in twenty is not a
+separation.
+
+---
+
+## codex_tier -- Terra vs Luna, both at medium effort
+
+**Status:** run 2026-10-10, 40 cells (4 tasks x 2 arms x n=5).
+
+**The gate did not separate the arms.**
+
+| Task | Terra | Luna |
+|---|---:|---:|
+| T1-orbit-trace (narrative) | 4/5 | 5/5 |
+| T2-viewport-consumers (enumerative) | 5/5 | 5/5 |
+| T3-go-package-types (fan-out, Go) | 5/5 | 5/5 |
+| T4-swift-declared-types (fan-out, Swift) | 5/5 | 3/5 |
+| **total** | **19/20** | **18/20** |
+
+Terra's miss traced the orbit correctly and called `BigFixed` "fixed-point
+bignum" without naming it. Luna's two misses are the same omission twice: its
+listing for `FractalMetalView.swift` named fourteen types from that file and
+left out `HUDSnapshot`. A 3/5 against a 5/5 on one task is inside what the
+same Terra configuration did across two runs (T1 4/5, then 2/5), so it is a
+watch item rather than a routing exclusion.
+
+**Luna spends more tokens and draws less quota.** Paired medians over passing
+runs, from `analyse.py`, except the quota row:
+
+| Metric | Terra | Luna | Delta | Per task |
+|---|---:|---:|---:|---|
+| 5-hour window, summed over the arm's 20 cells | 20 pts | 11 pts | **-45%** | T1 7 to 5, T2 3 to 1, T3 6 to 3, T4 4 to 2 |
+| output tokens | 912 | 1435 | +57.4% | +54.9% to +88.3%, all four |
+| reasoning tokens | 232 | 458 | +97.6% | +68.8% to +137.4%, all four |
+| tool calls | 2.5 | 3.5 | +40.0% | T1-T3 +100% to +125%, T4 flat |
+| input tokens | 106032 | 130514 | +23.1% | T4 -4.8%, disagrees |
+| wall-clock | 27.0s | 18.0s | -33.3% | T2 +28.6%, disagrees |
+
+On the 27 cells that ran alone the gap is wider, not narrower: Terra drew 12
+points over 13 cells (0.92 a cell) and Luna 4 points over 14 (0.29 a cell).
+Per passing answer over all cells, Terra cost 1.05 points and Luna 0.61. The
+analyser's median row reads 1.0 against 0.5, the same direction at a
+resolution that cannot carry a magnitude.
+
+Luna's output and reasoning deltas are beyond the Codex noise floor and agree in
+sign on all four tasks; its quota saving agrees in direction on all four. **The two
+results together are the finding: across models, fewer tokens is not less
+quota.** Luna explored more, with twice the reasoning tokens and more tool
+calls, and the window charged it a little over half as much for the answer.
+
+**Routing:** cold repository comprehension on Codex routes to Luna at medium
+effort. That is the guide's first Codex row.
+
+**What this does not say.** One night, one repository, n=5, a quota counter
+with one-point resolution and a third of its cells sharing the window with
+another job. The T4 misses are the place to look first if Luna is routed more
+widely: an exhaustive listing over a file that declares more than a dozen types
+is where it dropped one. Quota share is what a Plus subscription pays, and it
+does not convert to a price.
+
+**Raw:** `runs/codex_tier.jsonl`. `runs/codex_tier.plan` is the consumed plan;
+it is empty, and it must stay present, because `bin/overnight.sh` writes a fresh
+plan and re-runs the lever if the file is missing.
+
+---
+
+## codex_effort -- Terra at high vs medium reasoning effort -- INCONCLUSIVE
+
+**Status:** run 2026-10-10/11, 40 cells (4 tasks x 2 arms x n=5). The window
+reached 90% after 22 cells; the governor slept 158 minutes for the reset and
+finished the last 18 cells between 01:05 and 01:13 UTC.
+
+The question was whether `high` buys any gate passes over `medium` or only
+spends quota, and a null result was to change the local default, which is
+`high`.
+
+**The gate leaned towards `high`, by a margin the same night produced between
+identical arms.**
+
+| Task | high | medium |
+|---|---:|---:|
+| T1-orbit-trace (narrative) | 5/5 | **2/5** |
+| T2-viewport-consumers (enumerative) | 5/5 | 5/5 |
+| T3-go-package-types (fan-out, Go) | 5/5 | 4/5 |
+| T4-swift-declared-types (fan-out, Swift) | 5/5 | 5/5 |
+| **total** | **20/20** | **16/20** |
+
+All three T1 misses at medium are the miss Terra made once in `codex_tier`:
+each names `ReferenceOrbit.swift` as the producer and `FractalMetalView`,
+`FractalRenderer` and `fractal.metal` as consumers, which covers the other three
+key terms, and describes the precision type as "fixed-point bignum" without
+naming it. The T3 miss left `PerturbationStats` out of its package list. The
+gate is a substring match over named types, so a paraphrase fails it by design.
+What `high` bought on T1 was naming precision; the medium answers had the shape
+of the path right.
+
+Whether that is real is not shown. Terra at medium is also `codex_tier`'s
+control arm, run an hour earlier, where it scored 19/20 with T1 at 4/5. Two
+identical arms differed by three passes; this lever's arms differ by four.
+Pooling both medium runs gives 35/40 against `high`'s 20/20, and if the arms
+were identical a split at least that lopsided would turn up about one time in
+eight (Fisher exact, one-sided; about one in nineteen for this lever's own 20
+against 16).
+
+**Medium costs about a third less quota.** T1 is left out of the efficiency
+comparison: medium passed it twice, the same exclusion `model_tier_haiku`
+applied to Haiku's T1. Over T2 to T4:
+
+| Metric | high | medium | Delta | Per task |
+|---|---:|---:|---:|---|
+| 5-hour window, summed over T2-T4 cells | 17 pts | 10 pts | **-41%** | T2 4 to 3, T3 6 to 5, T4 7 to 2 |
+| reasoning tokens | 281 | 182 | -35.2% | -30.0% to -39.6%, all three |
+| output tokens | 749 | 588 | -21.5% | -11.9% to -28.7%, all three |
+| cache read tokens | 86272 | 68864 | -20.2% | T2 flat |
+| tool calls | 2.0 | 2.0 | flat | flat on all three |
+| wall-clock | 16.0s | 21.0s | +31.2% | disagrees in sign |
+
+Over all four tasks and all 40 cells, `high` drew 31 points and `medium` 20
+(-35%). On the cells that ran alone, `high` drew 1.21 points a cell and `medium`
+0.60. The reasoning-token saving agrees in sign on every task, which the Codex
+A/A comparison did not; the output-token saving is near the edge of it.
+
+**Verdict: inconclusive on the gate, default unchanged.** The condition for
+changing the default was a null gate, and the gate came back four passes
+towards `high` rather than null. Those four passes sit inside what identical
+arms produced the same night, so this does not show that `high` is needed
+either. `high` stays the default, because the evidence to move it is not here.
+Settling it needs n=10 per arm on T1 alone, 20 cells, which is where the whole
+difference sits.
+
+**An observation across the two levers, not a finding.** Luna at medium passed
+T1 5/5, where Terra at medium passed it 6 times in 10. Luna took a median of 9
+tool calls on T1 against Terra's 4 and named the type. Dropping a tier and
+dropping effort did not behave alike here: the smaller model explored more and
+named the type, the larger model at lower effort explored less and paraphrased
+it. One task, so it is recorded rather than relied on.
+
+**Raw:** `runs/codex_effort.jsonl`, and the consumed, empty
+`runs/codex_effort.plan`.
 
 ---
 
@@ -60,7 +360,7 @@ Both arms passed 5/5, so nothing is excluded:
 | T2-viewport-consumers | Sonnet 5 | Haiku 4.5 | Delta |
 |---|---:|---:|---:|
 | gate pass | 5/5 | 5/5 | none |
-| median cost USD | 0.0205 | 0.0360 | +75.6% |
+| median cost USD | 0.0205 | 0.0360 | +75.8% |
 | median tool calls | 1 | 2 | +100% |
 
 Sonnet answered T2 with a single Grep in all five runs. Haiku needed two calls
@@ -101,13 +401,12 @@ Gate 10/10 in both arms.
 **The map costs more and finds nothing faster.** Tool calls are flat (T1 9 to
 10, T2 2 to 2), so the map did not reduce search at all. Cost and wall-clock
 both rise by roughly a fifth, and they rise on **both tasks, in the same
-direction, by similar amounts** -- which is the first time in this harness two
-tasks have agreed. The mechanism is unremarkable once stated: the map is prompt
+direction, by similar amounts**. The mechanism is unremarkable once stated: the map is prompt
 weight that is paid for on every turn, and it bought no fewer round trips.
 
 **Read the size honestly.** +20.8% sits right on the +/-20% noise floor, so the
 magnitude is not reliable. What is reliable is the direction: four metrics, two
-tasks, same sign throughout, no metric favouring the map. The safe claim is
+tasks, and none of them moved in the map's favour. The safe claim is
 "no saving, plausibly a modest penalty", not "costs 20% more".
 
 ### Why the first run said the opposite
@@ -314,7 +613,7 @@ path). Both are generic and outlive codegraph.
 
 ## ast_grep -- INCONCLUSIVE: the treatment arm never fired
 
-Ran twice, n=3, two tasks, 12 cells each. Gate: 12/12 passed in both arms both
+Ran twice, n=3, two tasks, 12 cells each. Gate: 6/6 passed in both arms both
 times. **Neither run measured ast-grep**, because in all six treatment cells of
 the instrumented run the model never once invoked it. Recorded as inconclusive
 rather than as the win the second run's numbers appear to show.

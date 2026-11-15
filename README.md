@@ -29,28 +29,43 @@ models are identical. Cost still could.
 
 ## What the numbers say so far
 
-Five levers have been through the A/B harness, and two more are recorded as
-unrunnable rather than quietly dropped. Every run carries an answer-key gate, so
-a cheaper wrong answer cannot pass as a saving.
+A lever is one thing that can be switched on or off: a cheaper model, an
+architecture map in the system prompt, a search tool on PATH. Nine levers have
+been through the A/B harness, seven on Claude and two on Codex, and two more are
+recorded as unrunnable rather than quietly dropped. Every run carries a gate:
+the answer is checked against an answer key and passes or fails, so a cheaper
+wrong answer cannot pass as a saving.
+
+Each row below is one claim, what happened to it, and the figure behind that.
+Opus, Sonnet and Haiku are Anthropic's model tiers, largest to smallest; Terra
+and Luna are the larger and smaller tiers of GPT-5.6 in the Codex CLI. The last
+row covers two levers that share a control arm.
 
 | Lever | The claim | Verdict | The number |
 |---|---|---|---|
 | **Model tiering** | Opus earns its price on cold repo comprehension | **Refuted, route down** | Sonnet 5 is **71.6% cheaper** and passed the same 6 of 6 gates |
-| **Tiering one lower** | Haiku is cheaper still | **No** | Fails the narrative trace **3 times in 5**, and costs **75.6% more** on the shape it can do |
+| **Tiering one lower** | Haiku is cheaper still | **No** | Fails the narrative trace **3 times in 5**, and costs **75.8% more** on the shape it can do |
 | **Prompt caching** | Cache the stable prefix of every turn | **Untestable here** | The CLI exposes no flag to disable caching, so there is no control arm |
 | **Repo priming** | An architecture map at the top of `AGENTS.md` cuts orientation cost | **Refuted for conventional layouts** | **+20.8% cost**, tool calls flat at 9 to 10 and 2 to 2 |
 | **Sub-agent hygiene** | Tell a worker to return conclusions, not file dumps | **Untestable as posed** | **0 delegations in 20 cells**, with `Agent` allowed and the instruction given |
 | **Code graph** (CodeGraph) | A pre-built index beats grep on spin-up | **Retired unmeasured** | Preflight refused the run: the binary was gone, and had been for weeks |
 | **Structural search** (ast-grep) | Beats regex on structural questions | **Inconclusive** | **0 invocations in 6 treatment cells**; the model used grep anyway |
+| **Codex tiering** | Luna holds the gate Terra holds, for less quota | **Holds, route down** | Gate **18/20 against 19/20**, and Luna drew **45% less** of the 5-hour window while spending 57% more output tokens |
+| **Codex reasoning effort** | `high` buys nothing over `medium` | **Inconclusive, default kept** | Medium **16/20 against 20/20**, but the same medium arm scored 19/20 an hour earlier; medium drew about a third less quota |
+| **Context and tool hygiene** | Unused MCP tool schemas cost context; prune them per session | **Banked by deferred tool loading** | Pruning saves **515 tokens a turn (1.8%)**, gate 10/10 against 9/10; turning deferral off costs **+16.9%** (+42.1% on the clean task), gate 10/10 in both |
 
-The one lever that paid is unglamorous: stop sending Opus to do Sonnet's job.
-Three of the five measured levers first produced a confident result that did not
-survive a check of how the arms were built.
+The lever that paid is unglamorous, and it paid twice: route down a tier.
+Stop sending Opus to do Sonnet's job, and on Codex stop sending Terra to do
+Luna's. Three of the first five Claude levers produced a confident result that
+did not survive a check of how the arms were built. The context-hygiene lever
+had already been paid for by the CLI's defaults: tool search loads MCP schemas
+only on demand, so pruning has almost nothing left to remove.
 
-The harness now has a Codex backend as well, and two Codex levers are
-registered against it: `codex_tier` (Terra against Luna) and `codex_effort`
-(high against medium reasoning effort). Neither is in the table because neither
-has been written up yet.
+The Codex rows are priced in share of the 5-hour window, because a Plus
+subscription reports no dollars, and they carry a lesson of their own: Luna
+spent more output and reasoning tokens than Terra on every task and still drew
+about half the quota.
+Across models, the token count is the wrong proxy for what an answer costs.
 
 ### Route down from Opus, and stop at Sonnet
 
@@ -79,7 +94,7 @@ The trap is in the arithmetic. Efficiency is only compared across runs that pass
 in both arms, so on the narrative task Haiku's three failures drop the sample to
 two survivors: average those and a tier that fails three times in five looks
 like a bargain. On the task where the comparison is clean, Haiku is the more
-expensive arm, at 75.6% above Sonnet.
+expensive arm, at 75.8% above Sonnet.
 
 ### Priming the repo with an architecture map made it worse
 
@@ -90,7 +105,7 @@ expensive arm, at 75.6% above Sonnet.
 
 Tool calls were flat, so the map reduced no search at all. It was prompt weight
 paid for on every turn that bought no fewer round trips. Four metrics, two
-tasks, same sign throughout.
+tasks, and none moved in the map's favour.
 
 The first run of this lever reported **-34.0%** and was written up as validating
 the idea. It was measuring recall, not orientation: the priming blocks named the
@@ -122,15 +137,19 @@ tasks. A delta smaller than that is not an effect, and the priming result sits
 right on the line: what is reliable there is the direction, not the magnitude.
 
 Scope everything to the corpus. All of it is **cold repository comprehension**
-on a single repository, `fractals-from-the-90s` (a Go core and a SwiftUI app),
-in two task shapes. That repository is private, so the cells cannot be re-run
-from here, though the raw records can be re-analysed. Nothing here speaks to bulk
-edits, classification or extraction, and a cheaper tier may well pay on shapes
-the corpus does not contain.
+on a single repository, `fractals-from-the-90s` (a Go core and a SwiftUI app):
+four read-only tasks in three shapes, a narrative trace, an enumerative lookup
+and two fan-out listings. Most Claude levers ran the first two only. That
+repository is private, so the cells cannot be re-run from here. What is public
+is everything needed to check the arithmetic: the prompts and answer keys in
+`ab/tasks/`, one raw record per cell in `ab/runs/`, and the analyser. Nothing
+here speaks to bulk edits, classification or extraction, and a cheaper tier may
+well pay on shapes the corpus does not contain.
 
 The charts are rendered from the medians in `ab/RESULTS.md` by
 `scripts/render-charts.py`; run it after any number changes. Raw records are one
-JSON object per cell under `ab/runs/`.
+JSON object per cell under `ab/runs/`, a cell being one task run once in one
+arm, and `ab/bin/analyse.py ab/runs/<lever>.jsonl` reproduces each table.
 
 ## The scored benches
 
@@ -146,6 +165,7 @@ The four-tool side, scored against `rubric.md`. Each row is a bench from
 | BENCH-006 | codegraph MCP against grep and Read, same model | codegraph on the verdict, from a rubric tie at 27 each |
 | BENCH-007 | An O(1) LFU cache across four frontier models | Fable 30 and Opus 30; the GPT-5.5 row is run but not yet scored, Gemini-Pro not run |
 | BENCH-008 | Opus 5 against Sonnet 5, the first `ab/` harness run | Sonnet: the same 6 of 6 gates at 71.6% less cost |
+| BENCH-009 | Codex Terra against Luna at medium effort, run overnight | Luna: 18 of 20 gates against 19, at 45% less of the 5-hour window |
 
 ## Tools under test
 
@@ -194,9 +214,11 @@ their own `field-notes/INDEX.md`. See `field-notes/README.md`.
 ```
 bench-marks/
   ab/                    A/B cost harness: levers, tasks, runs, results
-    README.md            Method: gates, arms, cells, noise floor
+    README.md            Method: gates, arms, cells, the corpus, noise floor
     RESULTS.md           One section per lever -- the findings
     levers.yaml          Lever registry and status
+    tasks/               The four corpus tasks: prompt and answer key
+    runs/                Raw records, one JSON object per cell
     bin/                 preflight, run-cell, run-grid, analyse, and the
                          Codex quota reader and overnight runner
     overnight.queue      What the overnight runner works through

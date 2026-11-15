@@ -11,14 +11,16 @@ standing property of the repo.
 Routing between tiers is measured rather than assumed. The current guide, from
 `ab/RESULTS.md`, covers cold repository comprehension only:
 
-| Task shape | Cheapest tier that holds the gate |
-|---|---|
-| Narrative trace: follow a value through a call chain | Sonnet 5 |
-| Enumerative lookup: which callers touch X | Sonnet 5 |
+| Backend | Task shape | Cheapest tier that holds the gate |
+|---|---|---|
+| Claude | Narrative trace: follow a value through a call chain | Sonnet 5 |
+| Claude | Enumerative lookup: which callers touch X | Sonnet 5 |
+| Codex | All four corpus tasks | Luna, medium effort |
 
 Read as: route down from Opus to Sonnet, and stop there. One tier lower the gate
 starts failing on narrative work, and on enumerative work the cheaper tier is
-not actually cheaper.
+not actually cheaper. On Codex, route down from Terra to Luna, and leave
+Terra's reasoning effort at `high` until `codex_effort` is settled.
 
 ### Superseded: the one-lead-model rule
 

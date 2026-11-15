@@ -106,6 +106,58 @@ check_codex_model() {
   ok "Codex model $model reachable (5-hour window was at ${pct}%)"
 }
 
+# A context lever is sound only if its two arms load different tool sets. If the
+# operator's setup registers no MCP server, or a server fails to connect, or the
+# tool-search switch is ignored, both arms load the same prefix and the lever
+# compares a configuration with itself. So each arm is launched once on a
+# trivial prompt, with the env and flags run-cell.sh gives it, and what it
+# actually loaded is read from its own init event.
+probe_session() {
+  local regime="$1" env_args=(-u ENABLE_TOOL_SEARCH) extra=() out
+  case "$regime" in
+    strict)  extra=(--strict-mcp-config) ;;
+    nodefer) env_args=(ENABLE_TOOL_SEARCH=false) ;;
+  esac
+  out="$(cd "$repo_root" && env "${env_args[@]}" timeout 180 claude -p "Reply with the single word: ok" \
+      --output-format stream-json --verbose --model "${HYGIENE_MODEL:-claude-sonnet-5-5}" \
+      --allowedTools "Read,Grep,Glob,Bash" --disallowedTools "Agent,Task,WebSearch,WebFetch" \
+      ${extra[@]+"${extra[@]}"} < /dev/null 2>/dev/null)" || fail "the $regime probe session did not complete"
+  jq -sc '([.[] | select(.type=="system" and .subtype=="init")] | first // {}) as $init | {
+      servers: ($init.mcp_servers // []),
+      mcp_tools: ([$init.tools[]? | select(startswith("mcp__"))] | length),
+      tool_search: (($init.tools // []) | index("ToolSearch") != null),
+      prefix: ([.[] | select(.type=="assistant") | .message.usage] | first
+               | if . then .input_tokens + .cache_creation_input_tokens + .cache_read_input_tokens else null end)}' <<<"$out"
+}
+
+describe_probe() {
+  jq -r '"\(.servers | map(.name) | join(", ") | if . == "" then "no MCP servers" else . end), \(.mcp_tools) MCP tools, tool search \(if .tool_search then "on" else "off" end), turn-1 prompt \(.prefix) tok"' <<<"$1"
+}
+
+check_context_arms() {
+  local lever="$1" ctl trt dead
+  ctl="$(probe_session default)" || exit 1
+  dead="$(jq -r '[.servers[] | select(.status != "connected") | .name] | join(", ")' <<<"$ctl")"
+  [[ -z "$dead" ]] || fail "MCP server(s) registered but not connected: $dead -- the control arm would carry fewer schemas than the operator's real setup"
+  [[ "$(jq '.mcp_tools' <<<"$ctl")" -gt 0 ]] || fail "the default setup loads no MCP tools, so there is nothing for $lever to remove"
+  [[ "$(jq '.tool_search' <<<"$ctl")" == true ]] || fail "tool search is off by default here, but both context levers define control as the deferred regime"
+  ok "control:   $(describe_probe "$ctl")"
+  case "$lever" in
+    mcp_prune)
+      trt="$(probe_session strict)" || exit 1
+      [[ "$(jq '.servers | length' <<<"$trt")" -eq 0 && "$(jq '.mcp_tools' <<<"$trt")" -eq 0 ]] \
+        || fail "--strict-mcp-config still loaded MCP servers: the treatment arm would be the control arm"
+      ;;
+    tool_deferral)
+      trt="$(probe_session nodefer)" || exit 1
+      [[ "$(jq '.tool_search' <<<"$trt")" == false ]] \
+        || fail "ENABLE_TOOL_SEARCH=false left tool search on: the treatment arm would be the control arm"
+      [[ "$(jq '.mcp_tools' <<<"$trt")" -gt 0 ]] || fail "the deferral-off arm loaded no MCP tools"
+      ;;
+  esac
+  ok "treatment: $(describe_probe "$trt")"
+}
+
 printf '== preflight: %s (repo %s)\n' "$lever" "$repo_root"
 
 case "$lever" in
@@ -142,6 +194,10 @@ case "$lever" in
     ;;
   prompt_cache)
     ok "observational lever: no arm to switch, cache_read ratio is read from usage"
+    ;;
+  mcp_prune|tool_deferral)
+    check_binary claude
+    check_context_arms "$lever"
     ;;
   *)
     fail "unknown lever: $lever"

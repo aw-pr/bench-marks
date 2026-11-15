@@ -21,7 +21,7 @@ scored bench task.
 Working dir: the root of this repo (bench-marks)
 
 ## Step 0 — read first
-Read README.md, CLAUDE.md, RUNBOOK.md, MODELS.md, rubric.md, LEDGER.md, and
+Read README.md, CLAUDE.md, MODELS.md, rubric.md, LEDGER.md, and
 templates/. Understand that the scored BENCH-NNN four-tool format is sacred and
 must NOT be modified or diluted.
 

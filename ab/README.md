@@ -13,11 +13,63 @@ Five words do all the work here, so they are worth fixing up front.
   *treatment* has it on. Nothing else may differ between them.
 - **Cell** -- one task, in one arm, run once. A cell is the unit that gets
   metered and written to `runs/<lever>.jsonl`.
-- **Repeat (`n`)** -- how many times each cell is run. `n=5` means five runs of
-  every task in every arm.
+- **Repeat (`n`)** -- how many cells each task gets in each arm. `n=5` means
+  five runs of every task in every arm.
 - **Gate** -- correctness as pass/fail against an answer key, never a score.
   Cost is compared only across runs that passed, because the cost of reaching a
   wrong answer is not a number worth comparing.
+
+## The corpus
+
+Four tasks, all read-only questions about one repository, `fractals-from-the-90s`
+(a Go core and a SwiftUI app). They are referred to by number everywhere else.
+
+| Task | Shape | The question |
+|---|---|---|
+| T1 orbit trace | Narrative trace | How a reference orbit is produced and bound into the render path, and which Swift files consume it |
+| T2 viewport consumers | Enumerative lookup | Which Go packages depend on `internal/viewport` |
+| T3 Go package types | Fan-out listing | The exported types of every package under `internal/` (57 files, 13 packages) |
+| T4 Swift declared types | Fan-out listing | The types declared in every Swift source file (17 files) |
+
+Each task's answer key is a short list of names the final answer must contain,
+matched as substrings. T1 and T2 are the default pair for a Claude lever. T3 and
+T4 allow delegation to a sub-agent, so among the Claude levers only
+`subagent_hygiene` may use them; the Codex levers run all four.
+
+That repository is private. The prompts and answer keys are in `tasks/*.yaml`
+and every raw record is in `runs/`, so the analysis can be repeated by anyone,
+but the cells cannot be re-run without the checkout. That is the one part of
+this harness a reader has to take on trust.
+
+The models are named as their vendors name them. Opus 5, Sonnet 5 and Haiku 4.5
+are Anthropic's tiers, largest to smallest. Terra and Luna are the two tiers of
+OpenAI's GPT-5.6 that the Codex CLI offers (`gpt-5.6-terra` and
+`gpt-5.6-luna`); Terra is the larger.
+
+## Reading a lever
+
+Each lever is one entry in `levers.yaml` and one section in `RESULTS.md`. The
+entry gives the question, the two arms, what pre-flight must find before the
+lever may run, and a `status`:
+
+| Status | Meaning |
+|---|---|
+| `RUN` | The arms differed as intended and the result can be read |
+| `REFUTED` | Ran cleanly, and the claim the lever tested did not hold |
+| `BANKED` | Ran cleanly, and the saving turned out to be in place already |
+| `INCONCLUSIVE` | Ran, but the arms did not differ in practice or the gap is inside the noise |
+| `OBSERVATIONAL` | No control arm can be built, so it is recorded but is not an A/B |
+| `RETIRED` | Could not be run, and the reason is recorded |
+
+The status describes the experiment. The verdict in the top-level README's table
+describes the claim, which is why a lever with status `RUN` can carry the
+verdict "refuted": the experiment worked and the claim lost.
+
+A section in `RESULTS.md` reports the gate first, as passes out of cells per
+arm, then a table of arm medians with the delta and the per-task spread. Read
+the gate before the delta, and the per-task spread before the headline.
+
+## Why a gate and not the rubric
 
 It is not a second rubric. `rubric.md` scores *quality*, and quality is not what
 these levers move: model tiering, prompt caching and repo priming mostly leave
@@ -34,7 +86,7 @@ closed:
 
 | BENCH-006 | Here |
 |---|---|
-| n=1 per arm | n≥3 per cell, median and spread reported |
+| n=1 per arm | n≥3 per task and arm, median and spread reported |
 | self-reported token counts | metered: `claude -p --output-format json` returns real `usage` and `total_cost_usd` |
 | tool calls counted by hand | counted from `stream-json` `tool_use` blocks |
 | one lever (codegraph) | a lever registry; each is one row in `levers.yaml` |
@@ -61,7 +113,7 @@ spread beneath every metric and marks the metrics whose tasks disagree in sign.
 When they disagree, the spread is the result and the headline is a summary of
 something that did not happen twice.
 
-**Repeated.** n≥3 per cell. A single run cannot distinguish a real effect from
+**Repeated.** n≥3 per task and arm. A single run cannot distinguish a real effect from
 sampling noise, which is the main reason BENCH-006's split verdict had to be
 argued from the transcript rather than read off the numbers.
 
@@ -85,6 +137,8 @@ Captured per run, all from the CLI's own accounting:
 | `cache_read_input_tokens`, `cache_creation_input_tokens` | `usage` | whether caching is doing anything |
 | `total_cost_usd` | CLI | metered, not estimated |
 | `duration_ms`, `duration_api_ms`, `ttft_ms` | CLI | wall-clock and latency |
+| `prefix_tokens` | first assistant message's `usage` | the whole turn-1 prompt: system prompt, tool schemas, task; what a context lever moves |
+| `mcp_servers_connected`, `mcp_tools`, `tool_search` | `stream-json` `init` event | what the session actually loaded, so a record proves its arm |
 
 ### The Codex backend
 
@@ -107,7 +161,11 @@ measurement fields:
 | `credits_spent` | credit balance before and after | must be 0: above 100% of the window Codex bills paid credits without warning |
 
 `quota_pct_used` is only clean when nothing else is using Codex, which is why
-these levers run overnight.
+these levers run overnight. Overnight is not a guarantee: on the first night 24
+of 80 cells shared the window with another repository's `codex exec` worker, so
+check the session rollouts for foreign threads before quoting quota. It is also
+coarse, the change in a whole-number percentage, so one cell usually reads 0, 1 or 2;
+sum it over an arm rather than taking a median.
 
 ## Overnight runs
 
@@ -134,15 +192,16 @@ manufactured evidence.
 
 This is not hypothetical. The first lever this harness was built for,
 `codegraph`, turned out not to be installed on the day it was due to run, while
-three repos still registered it and a skill still told agents to prefer it.
+40 `.mcp.json` files still registered it and a skill still told agents to prefer it.
 Without the pre-flight both arms would have quietly used grep, the result would
 have read "no measurable difference", and a rollout decision would have been
 settled by a tool that was not there. The full account is in the codegraph
 section of `RESULTS.md`.
 
 The pre-flight therefore checks, per lever: the binary resolves, the MCP server
-answers, and any index is newer than the repo's last commit. Any failure is a
-refusal, never a warning.
+answers, and any index is newer than the repo's last commit. For a context
+lever it launches each arm once on a trivial prompt and refuses unless the two
+arms load different tool sets. Any failure is a refusal, never a warning.
 
 ## Layout
 
@@ -174,9 +233,9 @@ ab/bin/analyse.py ab/runs/*.jsonl        # arm medians, per-task spread, failure
 ```
 
 The runs need `claude` (or `codex` for a `codex_*` lever), `yq`, `jq` and `timeout` on
-PATH. The corpus tasks all point at one repository, `fractals-from-the-90s`,
-which is private: the raw records here can be re-analysed by anyone, but the
-cells cannot be re-run without your own repo and your own answer keys.
+PATH. The corpus repository is private (see "The corpus" above), so to run
+cells yourself, write task files against your own repository with your own
+answer keys. `analyse.py` needs only Python 3 and the committed records.
 
 Results land in `RESULTS.md` and a `BENCH-NNN` scorecard is written only when a
 lever produces a decision, so the ledger stays a record of conclusions rather

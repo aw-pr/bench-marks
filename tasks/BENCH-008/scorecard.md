@@ -115,3 +115,7 @@ item 5's hypothesis arriving from an unexpected direction. It is n=1 and was
 not a controlled arm, so it is recorded as an observation. The
 `subagent_hygiene` lever in `ab/levers.yaml` is the controlled way to settle
 it and is READY to run.
+
+*Update, 2026-09-18:* the lever has since run and could not settle it. The
+model delegated in 0 of 20 cells with `Agent` allowed, so the arms never
+differed. See the `subagent_hygiene` section of `ab/RESULTS.md`.
