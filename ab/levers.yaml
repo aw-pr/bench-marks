@@ -327,7 +327,19 @@ levers:
       - T2-viewport-consumers
     preflight:
       - context_arms_differ: true
-    status: READY
+    status: BANKED (by default tool search)
+    ran: 2026-11-15 (harness 496c026, Claude Code 2.1.325)
+    result: >
+      20 cells, gate 9/10 default against 10/10 pruned. Tool search was on, so
+      the 24 MCP tools were listed by name only: pruning removed 515 tokens
+      from every turn's prompt (-1.8%, identical in every cell). On T2, where
+      both arms took one Grep and two turns every time, that is exactly what it
+      saved: 1,030 cache-read tokens and 1.2% of cost. The headline +16.2% cost
+      is T1 behaviour (one more tool call at the median); the two identical
+      controls swing that much on T1 between themselves. Fully loaded the same
+      24 schemas cost 5,867 tokens a turn, so tool search already removes 91%
+      of what this lever was meant to remove. Not worth doing for spend while
+      tool search is on.
 
   tool_deferral:
     todo_item: "6 (prefer deferred tool loading)"
@@ -348,4 +360,15 @@ levers:
       - T2-viewport-consumers
     preflight:
       - context_arms_differ: true
-    status: READY
+    status: RUN
+    ran: 2026-11-15 (harness 496c026, Claude Code 2.1.325)
+    result: >
+      20 cells, gate 10/10 in both arms. Turning deferral off adds 20,558
+      tokens (+70.2%) to every turn's prompt: 15,206 for Claude Code's own
+      deferrable tools and 5,352 for the 24 MCP schemas, net of the 515 their
+      deferred listing already costs. Cost +16.9%
+      at the headline and the same sign on both tasks: T2, behaviourally
+      identical in every cell, +42.1%; T1, diluted by more turns, +14.1%.
+      Cache reads +67.8%. Deferral is the default and is what already banks
+      item 6. The action is negative: never set ENABLE_TOOL_SEARCH=false, and
+      treat a harness that cannot defer as the place pruning still pays.

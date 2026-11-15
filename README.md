@@ -29,7 +29,7 @@ models are identical. Cost still could.
 
 ## What the numbers say so far
 
-Seven levers have been through the A/B harness, five on Claude and two on
+Nine levers have been through the A/B harness, seven on Claude and two on
 Codex, and two more are recorded as unrunnable rather than quietly dropped.
 Every run carries an answer-key gate, so a cheaper wrong answer cannot pass as a
 saving.
@@ -45,11 +45,14 @@ saving.
 | **Structural search** (ast-grep) | Beats regex on structural questions | **Inconclusive** | **0 invocations in 6 treatment cells**; the model used grep anyway |
 | **Codex tiering** | Luna holds the gate Terra holds, for less quota | **Holds, route down** | Gate **18/20 against 19/20**, and Luna drew **45% less** of the 5-hour window while spending 57% more output tokens |
 | **Codex reasoning effort** | `high` buys nothing over `medium` | **Inconclusive, default kept** | Medium **16/20 against 20/20**, but the same medium arm scored 19/20 an hour earlier; medium drew about a third less quota |
+| **Context and tool hygiene** | Unused MCP tool schemas cost context; prune them per session | **Banked by deferred tool loading** | Pruning saves **515 tokens a turn (1.8%)**, gate 10/10 against 9/10; turning deferral off costs **+16.9%** (+42.1% on the clean task), gate 10/10 in both |
 
 The lever that paid is unglamorous, and it paid twice: route down a tier.
 Stop sending Opus to do Sonnet's job, and on Codex stop sending Terra to do
 Luna's. Three of the first five Claude levers produced a confident result that
-did not survive a check of how the arms were built.
+did not survive a check of how the arms were built. The context-hygiene lever
+had already been paid for by the CLI's defaults: tool search loads MCP schemas
+only on demand, so pruning has almost nothing left to remove.
 
 The Codex rows are priced in share of the 5-hour window, because a Plus
 subscription reports no dollars, and they carry a lesson of their own: Luna

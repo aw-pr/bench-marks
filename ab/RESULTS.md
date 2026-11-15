@@ -35,6 +35,126 @@ happen twice.
 
 ---
 
+## Context hygiene -- mcp_prune and tool_deferral
+
+**Status:** run 2026-11-15, 40 cells (2 levers x 2 tasks x 2 arms x n=5) on
+Sonnet 5.5 (`claude-sonnet-5-5`), Claude Code 2.1.325, harness `496c026`. This
+is `TOKEN-SPEND-TODO` item 6, split in two because the harness takes two arms.
+
+**The claim.** Every connected MCP server's tool schemas sit in context before
+any work starts, so pruning the servers a task does not need
+(`--strict-mcp-config`) cuts cost without touching the gate.
+
+**The regime measured, which decides the answer.** Tool search is on by default
+in a headless `claude -p` on this CLI: MCP tools are listed by name and their
+schemas load only when the model calls `ToolSearch`. The operator's headless
+setup loads two user-scope servers, a notes vault and a device controller, 24
+tools between them; the fractals checkout registers no project server. Both levers
+share one control, that setup as it stands. `mcp_prune` adds
+`--strict-mcp-config` with no config. `tool_deferral` sets
+`ENABLE_TOOL_SEARCH=false` for the one process, which turns deferral off without
+touching a settings file.
+
+### What each configuration puts in front of every turn
+
+The turn-1 prompt (system prompt, tool schemas and task) is deterministic per
+configuration: every cell in an arm recorded the same figure, and the preflight
+probes reproduced it to the token. Measured on a trivial prompt, with the
+cells' own tool flags:
+
+| Configuration | Turn-1 prompt | Against the default |
+|---|---:|---:|
+| Default: 2 MCP servers, tool search on | 29,251 | -- |
+| `--strict-mcp-config`, tool search on | 28,736 | -515 (-1.8%) |
+| `--strict-mcp-config`, tool search off | 43,942 | +14,691 |
+| Default MCP servers, tool search off | 49,809 | +20,558 (+70.3%) |
+
+Read across the rows: fully loaded, the 24 MCP schemas cost 5,867 tokens a turn
+(49,809 against 43,942). Deferred, they cost 515. **Tool search already removes
+91% of what pruning was meant to remove.** And most of what tool search removes
+is not MCP at all: 15,206 tokens a turn are Claude Code's own deferrable tools
+(43,942 against 28,736), which no MCP config can touch. The third row is a
+probe, not an arm; it was not run as cells.
+
+### mcp_prune -- banked by tool search
+
+| Metric | Default | Pruned | Delta | Per task |
+|---|---:|---:|---:|---|
+| gate | 9/10 | 10/10 | -- | the one miss is T1, `BigFixed` |
+| turn-1 prompt | 29,303 | 28,788 | **-1.8%** | -1.8% on both, every cell |
+| cost USD | 0.0539 | 0.0626 | +16.2% | T1 +18.0%, T2 -1.2%, disagree |
+| cache read tokens | 94,298 | 112,158 | +18.9% | T1 +28.3%, T2 -1.8%, disagree |
+| tool calls | 3.5 | 4.0 | +14.3% | T1 +16.7%, T2 flat |
+| wall-clock | 11.7s | 12.2s | +4.0% | T1 +4.6%, T2 flat |
+
+The headline says pruning cost 16% more. It did not: the pruned arm happened to
+take one more tool call at the median on T1, and the extra turns that call
+bought outweigh a 515-token prefix many times over. The two controls below show T1 swinging by that much between
+identical arms. T2 is the clean task here, one Grep and two turns in every cell
+of both arms, and on T2 pruning saved exactly what the prefix predicts: 1,030
+cache-read tokens (two turns of 515) and 1.2% of cost.
+
+So the lever works and is worth about 2%: real, deterministic, and an order of
+magnitude under the noise floor of any task that varies its own path. Nothing
+a pruned config saves here would show up on a bill.
+
+### tool_deferral -- this is where item 6 was banked
+
+| Metric | Deferred (default) | All schemas loaded | Delta | Per task |
+|---|---:|---:|---:|---|
+| gate | 10/10 | 10/10 | -- | -- |
+| turn-1 prompt | 29,303 | 49,861 | **+70.2%** | T1 +70.1%, T2 +70.2% |
+| cache read tokens | 109,766 | 184,199 | +67.8% | T1 +66.9%, T2 +70.2% |
+| cost USD | 0.0523 | 0.0611 | **+16.9%** | T1 +14.1%, T2 +42.1% |
+| tool calls | 3.0 | 4.0 | +33.3% | T1 +40.0%, T2 flat |
+| wall-clock | 11.9s | 12.4s | +4.4% | T1 +4.8%, T2 +2.0% |
+
+Turning deferral off costs more on both tasks, in the same direction on every
+token and cost metric. The headline +16.9% sits just under the noise floor;
+read T2 instead, which is behaviourally identical in both arms (one Grep, two
+turns, every cell) and so measures nothing but the prefix: **+42.1% cost**, the
+cells spread across 0.0099-0.0103 against 0.0129-0.0147. On T1 the same prefix
+is diluted by more turns of output and tool results, and lands at +14.1%.
+Cost rises less than tokens because cache reads are the cheapest tokens on the
+bill; the extra 20k tokens a turn are almost all cache reads.
+
+### The two controls are the same configuration
+
+Both levers' control arms are the default setup, run minutes apart, one grid
+after the other. Between them: turn-1 prompt identical, T2 cost +0.1%, T1 tool calls -16.7%, T1 cache
+reads +23.8%, T1 cost -3.3%, gate 9/10 against 10/10. T2 is near-deterministic
+and T1 is not, which is why T1 deltas of the sizes above cannot be read and T2
+deltas can.
+
+### What this means for item 6
+
+**Pruning MCP servers per session: banked, do not bother.** With tool search
+on, the 24 schemas the operator loads cost 515 tokens a turn, about 2% of a
+cheap task and less of an expensive one. `--strict-mcp-config` is still the
+right hygiene for a reproducible headless run, because it pins what loads, but
+not as a spend lever.
+
+**Prefer deferred tool loading: already the default, and worth keeping.**
+Turning it off adds 70% to every turn's prompt and 14% to 42% to the cost of
+the same correct answer, with the gate unchanged. The one action this result
+supports is a negative one: never set `ENABLE_TOOL_SEARCH=false`, and treat any
+harness that cannot defer (an SDK session handed every tool up front, an older
+CLI) as the regime where pruning pays, at about 5.9k tokens a turn for these
+24 tools.
+
+**Scope.** Two tasks, one repository, one model, two MCP servers. A setup
+with many more servers raises the residual roughly in proportion, about 21
+tokens a tool here, and would need hundreds of tools to reach the noise floor. The deferral-off regime
+was measured with these 24 tools only. `duration_ms` is the CLI's own figure;
+it did not move, and process start-up, which is where MCP servers launch, was
+not timed.
+
+**Raw:** `runs/mcp_prune.jsonl`, `runs/tool_deferral.jsonl`. Each record
+carries `prefix_tokens` and what the session loaded (`mcp_servers_connected`,
+`mcp_tools`, `tool_search`), so every cell proves its arm.
+
+---
+
 ## Reading the Codex levers
 
 The two Codex levers ran unattended on the night of 2026-10-10, 22:01 to 01:13
