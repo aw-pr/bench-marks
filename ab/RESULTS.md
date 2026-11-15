@@ -7,19 +7,24 @@ Raw records are in `runs/<lever>.jsonl`, one JSON object per cell.
 
 ## Routing guide
 
-The one piece of this file meant to be acted on. Both rows are about **cold
+The one piece of this file meant to be acted on. Every row is about **cold
 repository comprehension**, because that is what the corpus contains; nothing
 here speaks to bulk edits, classification or extraction.
 
-| Task shape | Cheapest tier that holds the gate | Evidence |
-|---|---|---|
-| Narrative trace: follow a value through a call chain | Sonnet 5 | `model_tier` (Opus 5 buys nothing), `model_tier_haiku` (Haiku fails 3 of 5) |
-| Enumerative lookup: which callers touch X | Sonnet 5 | `model_tier`; Haiku holds the gate but costs 75.6% more |
+| Backend | Task shape | Cheapest tier that holds the gate | Evidence |
+|---|---|---|---|
+| Claude | Narrative trace: follow a value through a call chain | Sonnet 5 | `model_tier` (Opus 5 buys nothing), `model_tier_haiku` (Haiku fails 3 of 5) |
+| Claude | Enumerative lookup: which callers touch X | Sonnet 5 | `model_tier`; Haiku holds the gate but costs 75.6% more |
+| Codex | All four corpus shapes | Luna, medium effort | `codex_tier`: gate 18/20 against Terra's 19/20, 45% less of the 5-hour window; both misses on the Swift type listing |
 
 Read as: **route down from Opus to Sonnet, and stop there.** Opus 5 showed no
 quality advantage over Sonnet on either shape while costing 3.5x more. One tier
 lower the gate starts failing on narrative work, and on enumerative work the
 cheaper tier is not actually cheaper.
+
+On Codex, **route down from Terra to Luna.** Luna spends more tokens than Terra
+and still draws far less of the 5-hour window. Leave Terra's reasoning effort at
+`high`: `codex_effort` did not show that `medium` holds the gate.
 
 A note on the noise floor, since it governs every figure below: two grep-vs-grep
 runs of the same configuration disagreed by 33 percentage points, which puts the
@@ -27,6 +32,174 @@ harness floor at roughly +/-20% at n=3 over two tasks. A delta smaller than that
 is not an effect. Where a lever's two tasks disagree in sign, the per-task
 spread is the result and the headline is a summary of something that did not
 happen twice.
+
+---
+
+## Reading the Codex levers
+
+The two Codex levers ran unattended on the night of 2026-10-10, 22:01 to 01:13
+UTC, through `bin/overnight.sh` at harness `acd529e`. Four things about how
+they were measured apply to both sections below.
+
+**No paid credits were drawn.** `credits_spent` is 0 on all 80 records, and the
+credit balance was the same at the end of the night as at the start.
+
+**The quota figure is coarse.** `quota_pct_used` is the change in a
+whole-number percentage of the 5-hour window, so a single cell usually reads 0, 1 or 2
+and a median of it is mostly ties. Quota is therefore reported here as the sum
+over an arm's cells, which is accurate to a point or two, and the analyser's
+median row is quoted only for its direction.
+
+**The night was not quiet.** A Codex worker from another repository ran
+`codex exec` from 21:58 to 22:02 and from 22:14 to 22:22 UTC, drawing on the
+same window. 24 of the 80 cells overlap it. Token counts are per thread and
+unaffected; quota is not. Each section gives the quota sums over all cells and
+over the cells that ran alone, and the two agree in direction.
+
+**The noise floor has a Codex measurement.** Terra at medium effort is the
+control arm of `codex_tier` and the treatment arm of `codex_effort`: the same
+configuration, run twice an hour apart. Between those two runs the per-task
+medians moved by up to +45% on output tokens and from -32% to +42% on reasoning
+tokens, with mixed signs, and the gate went from 19/20 to 16/20. A delta inside
+that is not an effect, and a gate gap of three passes in twenty is not a
+separation.
+
+---
+
+## codex_tier -- Terra vs Luna, both at medium effort
+
+**Status:** run 2026-10-10, 40 cells (4 tasks x 2 arms x n=5).
+
+**The gate did not separate the arms.**
+
+| Task | Terra | Luna |
+|---|---:|---:|
+| T1-orbit-trace (narrative) | 4/5 | 5/5 |
+| T2-viewport-consumers (enumerative) | 5/5 | 5/5 |
+| T3-go-package-types (fan-out, Go) | 5/5 | 5/5 |
+| T4-swift-declared-types (fan-out, Swift) | 5/5 | 3/5 |
+| **total** | **19/20** | **18/20** |
+
+Terra's miss traced the orbit correctly and called `BigFixed` "fixed-point
+bignum" without naming it. Luna's two misses are the same omission twice: its
+listing for `FractalMetalView.swift` named fourteen types from that file and
+left out `HUDSnapshot`. A 3/5 against a 5/5 on one task is inside what the
+same Terra configuration did across two runs (T1 4/5, then 2/5), so it is a
+watch item rather than a routing exclusion.
+
+**Luna spends more tokens and draws less quota.** Paired medians over passing
+runs, from `analyse.py`, except the quota row:
+
+| Metric | Terra | Luna | Delta | Per task |
+|---|---:|---:|---:|---|
+| 5-hour window, summed over the arm's 20 cells | 20 pts | 11 pts | **-45%** | T1 7 to 5, T2 3 to 1, T3 6 to 3, T4 4 to 2 |
+| output tokens | 912 | 1435 | +57.4% | +54.9% to +88.3%, all four |
+| reasoning tokens | 232 | 458 | +97.6% | +68.8% to +137.4%, all four |
+| tool calls | 2.5 | 3.5 | +40.0% | T1-T3 +100% to +125%, T4 flat |
+| input tokens | 106032 | 130514 | +23.1% | T4 -4.8%, disagrees |
+| wall-clock | 27.0s | 18.0s | -33.3% | T2 +28.6%, disagrees |
+
+On the 27 cells that ran alone the gap is wider, not narrower: Terra drew 12
+points over 13 cells (0.92 a cell) and Luna 4 points over 14 (0.29 a cell).
+Per passing answer over all cells, Terra cost 1.05 points and Luna 0.61. The
+analyser's median row reads 1.0 against 0.5, the same direction at a
+resolution that cannot carry a magnitude.
+
+Luna's token deltas are beyond the Codex noise floor and agree in sign on all
+four tasks; its quota saving agrees in direction on all four. **The two
+results together are the finding: across models, fewer tokens is not less
+quota.** Luna explored more, with twice the reasoning tokens and more tool
+calls, and the window charged it a little over half as much for the answer.
+
+**Routing:** cold repository comprehension on Codex routes to Luna at medium
+effort. That is the guide's first Codex row.
+
+**What this does not say.** One night, one repository, n=5, a quota counter
+with one-point resolution and a third of its cells sharing the window with
+another job. The T4 misses are the place to look first if Luna is routed more
+widely: an exhaustive listing over a file that declares more than a dozen types
+is where it dropped one. Quota share is what a Plus subscription pays, and it
+does not convert to a price.
+
+**Raw:** `runs/codex_tier.jsonl`. `runs/codex_tier.plan` is the consumed plan;
+it is empty, and it must stay present, because `bin/overnight.sh` writes a fresh
+plan and re-runs the lever if the file is missing.
+
+---
+
+## codex_effort -- Terra at high vs medium reasoning effort -- INCONCLUSIVE
+
+**Status:** run 2026-10-10/11, 40 cells (4 tasks x 2 arms x n=5). The window
+reached 90% after 22 cells; the governor slept 158 minutes for the reset and
+finished the last 18 cells between 01:05 and 01:13 UTC.
+
+The question was whether `high` buys any gate passes over `medium` or only
+spends quota, and a null result was to change the local default, which is
+`high`.
+
+**The gate leaned towards `high`, by a margin the same night produced between
+identical arms.**
+
+| Task | high | medium |
+|---|---:|---:|
+| T1-orbit-trace (narrative) | 5/5 | **2/5** |
+| T2-viewport-consumers (enumerative) | 5/5 | 5/5 |
+| T3-go-package-types (fan-out, Go) | 5/5 | 4/5 |
+| T4-swift-declared-types (fan-out, Swift) | 5/5 | 5/5 |
+| **total** | **20/20** | **16/20** |
+
+All three T1 misses at medium are the miss Terra made once in `codex_tier`:
+each names `ReferenceOrbit.swift` as the producer and `FractalMetalView`,
+`FractalRenderer` and `fractal.metal` as consumers, which covers the other three
+key terms, and describes the precision type as "fixed-point bignum" without
+naming it. The T3 miss left `PerturbationStats` out of its package list. The
+gate is a substring match over named types, so a paraphrase fails it by design.
+What `high` bought on T1 was naming precision; the medium answers had the shape
+of the path right.
+
+Whether that is real is not shown. Terra at medium is also `codex_tier`'s
+control arm, run an hour earlier, where it scored 19/20 with T1 at 4/5. Two
+identical arms differed by three passes; this lever's arms differ by four.
+Pooling both medium runs gives 35/40 against `high`'s 20/20, and if the arms
+were identical a split at least that lopsided would turn up about one time in
+eight (Fisher exact, one-sided; about one in nineteen for this lever's own 20
+against 16).
+
+**Medium costs about a third less quota.** T1 is left out of the efficiency
+comparison: medium passed it twice, the same exclusion `model_tier_haiku`
+applied to Haiku's T1. Over T2 to T4:
+
+| Metric | high | medium | Delta | Per task |
+|---|---:|---:|---:|---|
+| 5-hour window, summed over T2-T4 cells | 17 pts | 10 pts | **-41%** | T2 4 to 3, T3 6 to 5, T4 7 to 2 |
+| reasoning tokens | 281 | 182 | -35.2% | -30.0% to -39.6%, all three |
+| output tokens | 749 | 588 | -21.5% | -11.9% to -28.7%, all three |
+| cache read tokens | 86272 | 68864 | -20.2% | T2 flat |
+| tool calls | 2.0 | 2.0 | flat | flat on all three |
+| wall-clock | 16.0s | 21.0s | +31.2% | disagrees in sign |
+
+Over all four tasks and all 40 cells, `high` drew 31 points and `medium` 20
+(-35%). On the cells that ran alone, `high` drew 1.21 points a cell and `medium`
+0.60. The reasoning-token saving agrees in sign on every task, which the Codex
+A/A comparison did not; the output-token saving is near the edge of it.
+
+**Verdict: inconclusive on the gate, default unchanged.** The condition for
+changing the default was a null gate, and the gate came back four passes
+towards `high` rather than null. Those four passes sit inside what identical
+arms produced the same night, so this does not show that `high` is needed
+either. `high` stays the default, because the evidence to move it is not here.
+Settling it needs n=10 per arm on T1 alone, 20 cells, which is where the whole
+difference sits.
+
+**An observation across the two levers, not a finding.** Luna at medium passed
+T1 5/5, where Terra at medium passed it 6 times in 10. Luna took a median of 9
+tool calls on T1 against Terra's 4 and named the type. Dropping a tier and
+dropping effort did not behave alike here: the smaller model explored more and
+named the type, the larger model at lower effort explored less and paraphrased
+it. One task, so it is recorded rather than relied on.
+
+**Raw:** `runs/codex_effort.jsonl`, and the consumed, empty
+`runs/codex_effort.plan`.
 
 ---
 

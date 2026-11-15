@@ -107,7 +107,11 @@ measurement fields:
 | `credits_spent` | credit balance before and after | must be 0: above 100% of the window Codex bills paid credits without warning |
 
 `quota_pct_used` is only clean when nothing else is using Codex, which is why
-these levers run overnight.
+these levers run overnight. Overnight is not a guarantee: on the first night 24
+of 80 cells shared the window with another repository's `codex exec` worker, so
+check the session rollouts for foreign threads before quoting quota. It is also
+coarse, the change in a whole-number percentage, so one cell usually reads 0, 1 or 2;
+sum it over an arm rather than taking a median.
 
 ## Overnight runs
 

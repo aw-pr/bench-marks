@@ -254,8 +254,22 @@ levers:
       treatment: { model: gpt-5.6-luna,  reasoning_effort: medium }
     preflight:
       - codex_model_reachable: true
-    status: QUEUED
-    queued: 2026-10-10 (overnight, T1-T4 x n=5)
+    status: RUN
+    ran: 2026-10-10 (overnight, harness acd529e)
+    result: >
+      40 cells (4 tasks x 2 arms x n=5), credits_spent 0 on every record. Gate
+      Terra 19/20, Luna 18/20: no separation. Luna's two misses are both T4
+      (HUDSnapshot left out of a fourteen-type file listing), inside the two-pass
+      swing the same Terra arm showed on T1 across two runs that night. Luna
+      drew 45% less of the 5-hour window (20 points to 11, summed over each
+      arm's 20 cells; same direction on all four tasks) while spending MORE
+      tokens: output +57.4%, reasoning +97.6%, tool calls +40.0%, the token
+      deltas agreeing in sign on all four tasks. Across models, fewer tokens is
+      not less quota. 24 of the night's 80 Codex cells shared the window with
+      another repo's codex exec worker; on the 27 codex_tier cells that ran
+      alone the gap is wider (0.92 against 0.29 points a cell). Wrote the
+      routing guide's first Codex row: comprehension routes to Luna at medium.
+      See RESULTS.md and BENCH-009.
 
   codex_effort:
     todo_item: "3 (Codex)"
@@ -269,5 +283,17 @@ levers:
       treatment: { model: gpt-5.6-terra, reasoning_effort: medium }
     preflight:
       - codex_model_reachable: true
-    status: QUEUED
-    queued: 2026-10-10 (overnight, T1-T4 x n=5)
+    status: INCONCLUSIVE
+    ran: 2026-10-10/11 (overnight, harness acd529e)
+    result: >
+      40 cells, credits_spent 0. Gate high 20/20, medium 16/20: T1 2/5 at
+      medium, every miss naming the precision type "fixed-point bignum" instead
+      of BigFixed, and one T3 miss. Not a null, so the stated condition for
+      changing the default was not met. Not a separation either: the identical
+      Terra-medium configuration is codex_tier's control, run an hour earlier,
+      and scored 19/20 with T1 4/5. Pooled, medium is 35/40 against 20/20,
+      about a one-in-eight chance split if the arms were identical. Over T2-T4
+      (T1 excluded, medium n=2) medium drew 41% less of the window (17 points
+      to 10) and 35.2% fewer reasoning tokens, same sign on all three tasks.
+      high stays the default. To settle it: n=10 per arm on T1 alone, 20
+      cells, which is where the whole difference sits.

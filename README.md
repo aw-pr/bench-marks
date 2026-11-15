@@ -29,9 +29,10 @@ models are identical. Cost still could.
 
 ## What the numbers say so far
 
-Five levers have been through the A/B harness, and two more are recorded as
-unrunnable rather than quietly dropped. Every run carries an answer-key gate, so
-a cheaper wrong answer cannot pass as a saving.
+Seven levers have been through the A/B harness, five on Claude and two on
+Codex, and two more are recorded as unrunnable rather than quietly dropped.
+Every run carries an answer-key gate, so a cheaper wrong answer cannot pass as a
+saving.
 
 | Lever | The claim | Verdict | The number |
 |---|---|---|---|
@@ -42,15 +43,18 @@ a cheaper wrong answer cannot pass as a saving.
 | **Sub-agent hygiene** | Tell a worker to return conclusions, not file dumps | **Untestable as posed** | **0 delegations in 20 cells**, with `Agent` allowed and the instruction given |
 | **Code graph** (CodeGraph) | A pre-built index beats grep on spin-up | **Retired unmeasured** | Preflight refused the run: the binary was gone, and had been for weeks |
 | **Structural search** (ast-grep) | Beats regex on structural questions | **Inconclusive** | **0 invocations in 6 treatment cells**; the model used grep anyway |
+| **Codex tiering** | Luna holds the gate Terra holds, for less quota | **Holds, route down** | Gate **18/20 against 19/20**, and Luna drew **45% less** of the 5-hour window while spending 57% more output tokens |
+| **Codex reasoning effort** | `high` buys nothing over `medium` | **Inconclusive, default kept** | Medium **16/20 against 20/20**, but the same medium arm scored 19/20 an hour earlier; medium drew about a third less quota |
 
-The one lever that paid is unglamorous: stop sending Opus to do Sonnet's job.
-Three of the five measured levers first produced a confident result that did not
-survive a check of how the arms were built.
+The lever that paid is unglamorous, and it paid twice: route down a tier.
+Stop sending Opus to do Sonnet's job, and on Codex stop sending Terra to do
+Luna's. Three of the first five Claude levers produced a confident result that
+did not survive a check of how the arms were built.
 
-The harness now has a Codex backend as well, and two Codex levers are
-registered against it: `codex_tier` (Terra against Luna) and `codex_effort`
-(high against medium reasoning effort). Neither is in the table because neither
-has been written up yet.
+The Codex rows are priced in share of the 5-hour window, because a Plus
+subscription reports no dollars, and they carry a lesson of their own: Luna
+spent more tokens than Terra on every task and still drew about half the quota.
+Across models, the token count is the wrong proxy for what an answer costs.
 
 ### Route down from Opus, and stop at Sonnet
 
@@ -146,6 +150,7 @@ The four-tool side, scored against `rubric.md`. Each row is a bench from
 | BENCH-006 | codegraph MCP against grep and Read, same model | codegraph on the verdict, from a rubric tie at 27 each |
 | BENCH-007 | An O(1) LFU cache across four frontier models | Fable 30 and Opus 30; the GPT-5.5 row is run but not yet scored, Gemini-Pro not run |
 | BENCH-008 | Opus 5 against Sonnet 5, the first `ab/` harness run | Sonnet: the same 6 of 6 gates at 71.6% less cost |
+| BENCH-009 | Codex Terra against Luna at medium effort, run overnight | Luna: 18 of 20 gates against 19, at 45% less of the 5-hour window |
 
 ## Tools under test
 
