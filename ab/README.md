@@ -140,7 +140,7 @@ manufactured evidence.
 
 This is not hypothetical. The first lever this harness was built for,
 `codegraph`, turned out not to be installed on the day it was due to run, while
-three repos still registered it and a skill still told agents to prefer it.
+40 `.mcp.json` files still registered it and a skill still told agents to prefer it.
 Without the pre-flight both arms would have quietly used grep, the result would
 have read "no measurable difference", and a rollout decision would have been
 settled by a tool that was not there. The full account is in the codegraph

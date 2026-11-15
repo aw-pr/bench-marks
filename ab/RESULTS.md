@@ -394,8 +394,7 @@ Gate 10/10 in both arms.
 **The map costs more and finds nothing faster.** Tool calls are flat (T1 9 to
 10, T2 2 to 2), so the map did not reduce search at all. Cost and wall-clock
 both rise by roughly a fifth, and they rise on **both tasks, in the same
-direction, by similar amounts** -- which is the first time in this harness two
-tasks have agreed. The mechanism is unremarkable once stated: the map is prompt
+direction, by similar amounts**. The mechanism is unremarkable once stated: the map is prompt
 weight that is paid for on every turn, and it bought no fewer round trips.
 
 **Read the size honestly.** +20.8% sits right on the +/-20% noise floor, so the
@@ -607,7 +606,7 @@ path). Both are generic and outlive codegraph.
 
 ## ast_grep -- INCONCLUSIVE: the treatment arm never fired
 
-Ran twice, n=3, two tasks, 12 cells each. Gate: 12/12 passed in both arms both
+Ran twice, n=3, two tasks, 12 cells each. Gate: 6/6 passed in both arms both
 times. **Neither run measured ast-grep**, because in all six treatment cells of
 the instrumented run the model never once invoked it. Recorded as inconclusive
 rather than as the win the second run's numbers appear to show.

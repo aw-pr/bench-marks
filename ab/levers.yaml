@@ -36,7 +36,7 @@ levers:
       the node upgrade took with it. Reinstalling costs a pinned node@20 plus a
       per-repo index that goes stale silently -- the fractals index was 39 files
       behind HEAD. Against that, BENCH-008 answered both harness tasks with
-      plain Grep/Read in 1-7 tool calls, and BENCH-006's only prior evidence
+      plain Grep/Read in 1-15 tool calls, and BENCH-006's only prior evidence
       (n=1) was a rubric tie whose noted failure mode was confident wrong edges.
       All 40 .mcp.json registrations and the codegraph-first skill were removed.
       Kept in this registry rather than deleted: "lost the A/B" and "was never
@@ -52,7 +52,7 @@ levers:
     prior: >
       Adopted 2026-08-23 as the low-hassle replacement for codegraph, on the
       argument that these repos are 3k-41k lines and BENCH-008 answered both
-      tasks in 1-7 tool calls with no graph at all. That argument predicts a
+      tasks in 1-15 tool calls with no graph at all. That argument predicts a
       SMALL or ZERO win. This lever exists to check it rather than assume it --
       if ast-grep does not beat grep here, the correct conclusion is that no
       discovery tool is warranted at this repo size, which is itself the answer.
@@ -64,7 +64,7 @@ levers:
     status: INCONCLUSIVE
     ran: 2026-08-23
     result: >
-      Ran twice at n=3. Gate 12/12 in both arms both times. Not a measurement
+      Ran twice at n=3, 12 cells each. Gate 6/6 in both arms both times. Not a measurement
       of ast-grep: instrumentation showed the treatment arm invoked grep 25
       times and ast-grep zero times across all six treatment cells, so both
       arms were grep-and-Read. The two runs disagree in sign (+11.8% then
@@ -97,8 +97,7 @@ levers:
       Valid run: 20 cells, gate 10/10 in both arms, and the map is a COST.
       Cost +20.8%, wall-clock +18.6%, cache reads +33.7%, tool calls flat
       (T1 9->10, T2 2->2). Both tasks move the same direction by similar
-      amounts on cost and wall-clock, the first time two tasks have agreed in
-      this harness. The mechanism is plain: the map is prompt weight paid for
+      amounts on cost and wall-clock. The mechanism is plain: the map is prompt weight paid for
       every turn, and it bought no fewer round trips. Magnitude sits on the
       +/-20% noise floor so do not quote it; the direction is what holds.
       The first run reported -34.0% cost and was written up as validating the
