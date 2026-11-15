@@ -37,7 +37,7 @@ saving.
 | Lever | The claim | Verdict | The number |
 |---|---|---|---|
 | **Model tiering** | Opus earns its price on cold repo comprehension | **Refuted, route down** | Sonnet 5 is **71.6% cheaper** and passed the same 6 of 6 gates |
-| **Tiering one lower** | Haiku is cheaper still | **No** | Fails the narrative trace **3 times in 5**, and costs **75.6% more** on the shape it can do |
+| **Tiering one lower** | Haiku is cheaper still | **No** | Fails the narrative trace **3 times in 5**, and costs **75.8% more** on the shape it can do |
 | **Prompt caching** | Cache the stable prefix of every turn | **Untestable here** | The CLI exposes no flag to disable caching, so there is no control arm |
 | **Repo priming** | An architecture map at the top of `AGENTS.md` cuts orientation cost | **Refuted for conventional layouts** | **+20.8% cost**, tool calls flat at 9 to 10 and 2 to 2 |
 | **Sub-agent hygiene** | Tell a worker to return conclusions, not file dumps | **Untestable as posed** | **0 delegations in 20 cells**, with `Agent` allowed and the instruction given |
@@ -87,7 +87,7 @@ The trap is in the arithmetic. Efficiency is only compared across runs that pass
 in both arms, so on the narrative task Haiku's three failures drop the sample to
 two survivors: average those and a tier that fails three times in five looks
 like a bargain. On the task where the comparison is clean, Haiku is the more
-expensive arm, at 75.6% above Sonnet.
+expensive arm, at 75.8% above Sonnet.
 
 ### Priming the repo with an architecture map made it worse
 

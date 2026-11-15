@@ -14,7 +14,7 @@ here speaks to bulk edits, classification or extraction.
 | Backend | Task shape | Cheapest tier that holds the gate | Evidence |
 |---|---|---|---|
 | Claude | Narrative trace: follow a value through a call chain | Sonnet 5 | `model_tier` (Opus 5 buys nothing), `model_tier_haiku` (Haiku fails 3 of 5) |
-| Claude | Enumerative lookup: which callers touch X | Sonnet 5 | `model_tier`; Haiku holds the gate but costs 75.6% more |
+| Claude | Enumerative lookup: which callers touch X | Sonnet 5 | `model_tier`; Haiku holds the gate but costs 75.8% more |
 | Codex | All four corpus shapes | Luna, medium effort | `codex_tier`: gate 18/20 against Terra's 19/20, 45% less of the 5-hour window; both misses on the Swift type listing |
 
 Read as: **route down from Opus to Sonnet, and stop there.** Opus 5 showed no
@@ -353,7 +353,7 @@ Both arms passed 5/5, so nothing is excluded:
 | T2-viewport-consumers | Sonnet 5 | Haiku 4.5 | Delta |
 |---|---:|---:|---:|
 | gate pass | 5/5 | 5/5 | none |
-| median cost USD | 0.0205 | 0.0360 | +75.6% |
+| median cost USD | 0.0205 | 0.0360 | +75.8% |
 | median tool calls | 1 | 2 | +100% |
 
 Sonnet answered T2 with a single Grep in all five runs. Haiku needed two calls
