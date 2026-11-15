@@ -3,7 +3,14 @@
 One section per lever. A lever appears here only once it has run; a lever that
 cannot run honestly says so and why, rather than being quietly absent.
 
-Raw records are in `runs/<lever>.jsonl`, one JSON object per cell.
+Raw records are in `runs/<lever>.jsonl`, one JSON object per cell. The
+vocabulary (lever, arm, cell, gate), the four corpus tasks T1 to T4 and the
+status words are defined in [`README.md`](README.md).
+
+`TOKEN-SPEND-TODO` is the private list of spend-cutting ideas these levers were
+drawn from; an "item" number refers to that list. It is not published, and
+nothing here depends on reading it. Other repositories named below
+(`fractals-from-the-90s`, `mcp-hub`, `emergence-lab`) are private too.
 
 ## Routing guide
 
@@ -15,7 +22,7 @@ here speaks to bulk edits, classification or extraction.
 |---|---|---|---|
 | Claude | Narrative trace: follow a value through a call chain | Sonnet 5 | `model_tier` (Opus 5 buys nothing), `model_tier_haiku` (Haiku fails 3 of 5) |
 | Claude | Enumerative lookup: which callers touch X | Sonnet 5 | `model_tier`; Haiku holds the gate but costs 75.8% more |
-| Codex | All four corpus shapes | Luna, medium effort | `codex_tier`: gate 18/20 against Terra's 19/20, 45% less of the 5-hour window; both misses on the Swift type listing |
+| Codex | All four corpus tasks | Luna, medium effort | `codex_tier`: gate 18/20 against Terra's 19/20, 45% less of the 5-hour window; both misses on the Swift type listing |
 
 Read as: **route down from Opus to Sonnet, and stop there.** Opus 5 showed no
 quality advantage over Sonnet on either shape while costing 3.5x more. One tier

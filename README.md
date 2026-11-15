@@ -29,10 +29,17 @@ models are identical. Cost still could.
 
 ## What the numbers say so far
 
-Nine levers have been through the A/B harness, seven on Claude and two on
-Codex, and two more are recorded as unrunnable rather than quietly dropped.
-Every run carries an answer-key gate, so a cheaper wrong answer cannot pass as a
-saving.
+A lever is one thing that can be switched on or off: a cheaper model, an
+architecture map in the system prompt, a search tool on PATH. Nine levers have
+been through the A/B harness, seven on Claude and two on Codex, and two more are
+recorded as unrunnable rather than quietly dropped. Every run carries a gate:
+the answer is checked against an answer key and passes or fails, so a cheaper
+wrong answer cannot pass as a saving.
+
+Each row below is one claim, what happened to it, and the figure behind that.
+Opus, Sonnet and Haiku are Anthropic's model tiers, largest to smallest; Terra
+and Luna are the larger and smaller tiers of GPT-5.6 in the Codex CLI. The last
+row covers two levers that share a control arm.
 
 | Lever | The claim | Verdict | The number |
 |---|---|---|---|
@@ -130,15 +137,19 @@ tasks. A delta smaller than that is not an effect, and the priming result sits
 right on the line: what is reliable there is the direction, not the magnitude.
 
 Scope everything to the corpus. All of it is **cold repository comprehension**
-on a single repository, `fractals-from-the-90s` (a Go core and a SwiftUI app),
-in two task shapes. That repository is private, so the cells cannot be re-run
-from here, though the raw records can be re-analysed. Nothing here speaks to bulk
-edits, classification or extraction, and a cheaper tier may well pay on shapes
-the corpus does not contain.
+on a single repository, `fractals-from-the-90s` (a Go core and a SwiftUI app):
+four read-only tasks in three shapes, a narrative trace, an enumerative lookup
+and two fan-out listings. Most Claude levers ran the first two only. That
+repository is private, so the cells cannot be re-run from here. What is public
+is everything needed to check the arithmetic: the prompts and answer keys in
+`ab/tasks/`, one raw record per cell in `ab/runs/`, and the analyser. Nothing
+here speaks to bulk edits, classification or extraction, and a cheaper tier may
+well pay on shapes the corpus does not contain.
 
 The charts are rendered from the medians in `ab/RESULTS.md` by
 `scripts/render-charts.py`; run it after any number changes. Raw records are one
-JSON object per cell under `ab/runs/`.
+JSON object per cell under `ab/runs/`, a cell being one task run once in one
+arm, and `ab/bin/analyse.py ab/runs/<lever>.jsonl` reproduces each table.
 
 ## The scored benches
 
@@ -203,9 +214,11 @@ their own `field-notes/INDEX.md`. See `field-notes/README.md`.
 ```
 bench-marks/
   ab/                    A/B cost harness: levers, tasks, runs, results
-    README.md            Method: gates, arms, cells, noise floor
+    README.md            Method: gates, arms, cells, the corpus, noise floor
     RESULTS.md           One section per lever -- the findings
     levers.yaml          Lever registry and status
+    tasks/               The four corpus tasks: prompt and answer key
+    runs/                Raw records, one JSON object per cell
     bin/                 preflight, run-cell, run-grid, analyse, and the
                          Codex quota reader and overnight runner
     overnight.queue      What the overnight runner works through

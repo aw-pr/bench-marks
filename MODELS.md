@@ -15,7 +15,7 @@ Routing between tiers is measured rather than assumed. The current guide, from
 |---|---|---|
 | Claude | Narrative trace: follow a value through a call chain | Sonnet 5 |
 | Claude | Enumerative lookup: which callers touch X | Sonnet 5 |
-| Codex | All four corpus shapes | Luna, medium effort |
+| Codex | All four corpus tasks | Luna, medium effort |
 
 Read as: route down from Opus to Sonnet, and stop there. One tier lower the gate
 starts failing on narrative work, and on enumerative work the cheaper tier is
