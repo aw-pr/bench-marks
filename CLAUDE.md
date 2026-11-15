@@ -37,6 +37,6 @@ Never write API keys, tokens, or credentials into any file in this repo. Use `.e
 ## Key files
 
 - `rubric.md` — scoring dimensions, anchors (1/3/5), and the free-text notes field
-- `MODELS.md` — the one-lead-model policy and why comparison lives only here
+- `MODELS.md` — worker/verifier tier policy, the routing guide, and why comparison lives only here
 - `LEDGER.md` — rolling index of all bench tasks
 - `START-PROMPT.md` — paste-ready prompt to kick off a new task as orchestrator
