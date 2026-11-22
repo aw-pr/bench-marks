@@ -47,7 +47,7 @@ Tools to run: claude, codex, cursor, gemini
 6. Once you are told that all four tool runs are complete, open each artefact in
    tasks/<id>/<tool>/ and complete tasks/<id>/scorecard.md using
    templates/scorecard-template.md and the anchors in rubric.md.
-   Score your own (Claude's) run using the same anchors as the others — no self-favouring.
+   Score your own (Claude's) run using the same anchors as the others; no self-favouring.
 
 7. Append a row to LEDGER.md:
    | <id> | <date> | <source> | <one-line summary> | <winning tool> | [scorecard](tasks/<id>/scorecard.md) |

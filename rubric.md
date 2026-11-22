@@ -1,6 +1,6 @@
 # Scoring Rubric
 
-All dimensions are scored 1–5. Use integer scores only. Half-points are not permitted — if you are between two anchors, pick the lower one and note why in the "notes / surprises" field.
+All dimensions are scored 1–5. Use integer scores only. Half-points are not permitted: if you are between two anchors, pick the lower one and note why in the "notes / surprises" field.
 
 ---
 
@@ -107,4 +107,4 @@ Task: implement a deterministic Gray-Scott reaction-diffusion step function in P
 | cursor | 3 | 3 | 4 | 3 | 3 | 3 | 19 |
 | gemini | 4 | 4 | 3 | 4 | 4 | 4 | 23 |
 
-Notes: Claude produced a working NumPy implementation on the first pass. Codex produced correct output but used a non-standard loop structure requiring one cleanup pass. Cursor's autocomplete conflated Gray-Scott with a different PDE before self-correcting. Gemini asked one clarifying question about boundary conditions before proceeding — appropriate caution, minor autonomy deduction. This row is an EXAMPLE and not real benchmark data.
+Notes: Claude produced a working NumPy implementation on the first pass. Codex produced correct output but used a non-standard loop structure requiring one cleanup pass. Cursor's autocomplete conflated Gray-Scott with a different PDE before self-correcting. Gemini asked one clarifying question about boundary conditions before proceeding, appropriate caution, minor autonomy deduction. This row is an EXAMPLE and not real benchmark data.
