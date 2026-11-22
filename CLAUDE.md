@@ -1,8 +1,8 @@
-# CLAUDE.md — The Bench
+# CLAUDE.md: The Bench
 
 ## Purpose
 
-This repo is a fair-comparison harness. Its only job is to run identical task briefs through four AI tools and score the results objectively.
+This repo is a fair-comparison harness. Its first job is to run identical task briefs through up to four AI tools (claude, codex, cursor, gemini) and score the results objectively. No bench has yet scored all four, and cursor has not been scored. Its second is the A/B cost harness under `ab/`, which measures what one change to one model's configuration costs, with correctness as a pass/fail gate rather than a score.
 
 ## Orchestrator role
 
@@ -36,7 +36,10 @@ Never write API keys, tokens, or credentials into any file in this repo. Use `.e
 
 ## Key files
 
-- `rubric.md` — scoring dimensions, anchors (1/3/5), and the free-text notes field
-- `MODELS.md` — worker/verifier tier policy, the routing guide, and why comparison lives only here
-- `LEDGER.md` — rolling index of all bench tasks
-- `START-PROMPT.md` — paste-ready prompt to kick off a new task as orchestrator
+- `rubric.md`: scoring dimensions, anchors (1/3/5), and the free-text notes field
+- `MODELS.md`: worker/verifier tier policy, the routing guide, and why comparison lives only here
+- `LEDGER.md`: rolling index of all bench tasks
+- `START-PROMPT.md`: paste-ready prompt to kick off a new task as orchestrator
+- `ab/README.md`: method for the A/B cost harness (levers, arms, cells, gates)
+- `ab/RESULTS.md`: the A/B findings, one section per lever; recorded evidence, do not edit
+- `field-notes/`: un-scored narrative observations, indexed in `field-notes/INDEX.md`
