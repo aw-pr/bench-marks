@@ -1,4 +1,4 @@
-# FN-NNN — {{short title}}
+# FN-NNN: {{short title}}
 
 ## Metadata
 

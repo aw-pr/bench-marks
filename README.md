@@ -2,19 +2,23 @@
 
 ![Runtime](https://img.shields.io/badge/runtime-bash%20%2B%20python%203.11%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Status](https://img.shields.io/badge/status-personal%20research%20harness-orange)
 
-A personal model-evaluation harness for comparing four AI tools on identical tasks.
+**A personal model-evaluation harness that scores up to four AI tools (Claude, Codex, Cursor and Gemini) against each other on identical tasks, and measures what one model's configuration changes cost in A/B experiments.**
 
 ## Purpose
 
-Subscription decisions are expensive guesses without data. The Bench turns a hunch ("Claude feels better at X") into a scored record. Each task brief is run independently through four tools, outputs are captured, and results are scored against a fixed rubric. The rolling dataset feeds the iTone Substack series -- a first-person account of what the four subscriptions actually do differently, week by week.
+Subscription decisions are expensive guesses without data. The Bench turns a hunch ("Claude feels better at X") into a scored record. Each task brief is run independently through up to four tools, outputs are captured, and results are scored against a fixed rubric. The design covers four tools (claude, codex, cursor, gemini), but no bench has yet scored all four, and cursor has not been scored. The rolling dataset feeds the iTone Substack series, a first-person account of what the four subscriptions actually do differently.
+
+## Running it
+
+The A/B harness commands are in [`ab/README.md`](ab/README.md). The shell scripts in `ab/bin/` need bash, `jq` and `yq`, plus the `claude` or `codex` CLI for the lever being run; the overnight runner also needs `timeout`. `ab/bin/analyse.py` uses only the Python standard library, and `scripts/render-charts.py` runs through `uv run --script`, so it needs `uv`.
 
 ## Two kinds of experiment
 
 The repo answers two different questions and keeps them apart, because they need
 different instruments.
 
-- **Four-tool comparisons** (`tasks/`): the same brief run through Claude,
-  Codex, Cursor and Gemini, scored for quality against `rubric.md`. Answers
+- **Tool comparisons** (`tasks/`): the same brief run through up to four tools
+  (Claude, Codex, Cursor and Gemini), scored for quality against `rubric.md`. Answers
   "which tool is better at this".
 - **A/B cost experiments** (`ab/`): one model, one change at a time, with
   correctness as a pass/fail gate rather than a score. Answers "what did the
@@ -30,14 +34,16 @@ models are identical. Cost still could.
 ## What the numbers say so far
 
 A lever is one thing that can be switched on or off: a cheaper model, an
-architecture map in the system prompt, a search tool on PATH. Nine levers have
+architecture map in the system prompt, a search tool on PATH. An arm is one side
+of a comparison, control with the lever off and treatment with it on; a cell is
+one task run once in one arm. Nine levers have
 been through the A/B harness, seven on Claude and two on Codex, and two more are
 recorded as unrunnable rather than quietly dropped. Every run carries a gate:
 the answer is checked against an answer key and passes or fails, so a cheaper
 wrong answer cannot pass as a saving.
 
 Each row below is one claim, what happened to it, and the figure behind that.
-Opus, Sonnet and Haiku are Anthropic's model tiers, largest to smallest; Terra
+Opus, Sonnet and Haiku are Anthropic's model tiers, largest to smallest (the context-hygiene lever ran on Sonnet 5.5, `claude-sonnet-5-5`); Terra
 and Luna are the larger and smaller tiers of GPT-5.6 in the Codex CLI. The last
 row covers two levers that share a control arm.
 
@@ -52,7 +58,7 @@ row covers two levers that share a control arm.
 | **Structural search** (ast-grep) | Beats regex on structural questions | **Inconclusive** | **0 invocations in 6 treatment cells**; the model used grep anyway |
 | **Codex tiering** | Luna holds the gate Terra holds, for less quota | **Holds, route down** | Gate **18/20 against 19/20**, and Luna drew **45% less** of the 5-hour window while spending 57% more output tokens |
 | **Codex reasoning effort** | `high` buys nothing over `medium` | **Inconclusive, default kept** | Medium **16/20 against 20/20**, but the same medium arm scored 19/20 an hour earlier; medium drew about a third less quota |
-| **Context and tool hygiene** | Unused MCP tool schemas cost context; prune them per session | **Banked by deferred tool loading** | Pruning saves **515 tokens a turn (1.8%)**, gate 10/10 against 9/10; turning deferral off costs **+16.9%** (+42.1% on the clean task), gate 10/10 in both |
+| **Context and tool hygiene** | Unused MCP tool schemas cost context; prune them per session | **Banked by deferred tool loading** | Pruning saves **515 tokens a turn (1.8%)**, gate 10/10 pruned against 9/10 default; turning deferral off costs **+16.9%** (+42.1% on the clean task), gate 10/10 in both |
 
 The lever that paid is unglamorous, and it paid twice: route down a tier.
 Stop sending Opus to do Sonnet's job, and on Codex stop sending Terra to do
@@ -121,7 +127,7 @@ capability available and describing it in the system prompt:
 | Lever | Offered | Instructed | Used |
 |---|---|---|---|
 | `ast_grep` | Binary on PATH | Named, with syntax, in the system prompt | 0 of 6 cells |
-| `codegraph` | MCP registered across 40 repos | A whole skill telling agents to prefer it | Never measured; the tool was gone and nothing noticed |
+| `codegraph` | MCP registered in 40 `.mcp.json` files | A whole skill telling agents to prefer it | Never measured; the tool was gone and nothing noticed |
 | `subagent_hygiene` | `Agent` allowed, tasks built for fan-out | Told how to brief a sub-agent | 0 of 20 cells |
 
 Availability plus instruction is not adoption. The model uses what it is used
@@ -153,19 +159,21 @@ arm, and `ab/bin/analyse.py ab/runs/<lever>.jsonl` reproduces each table.
 
 ## The scored benches
 
-The four-tool side, scored against `rubric.md`. Each row is a bench from
+The tool-comparison side (up to four tools), scored against `rubric.md`. Each row is a bench from
 [`LEDGER.md`](LEDGER.md).
 
 | Bench | Task | Result |
 |---|---|---|
-| BENCH-001 | A ~1500-word post in a fixed house style | codex 29, joint top with claude |
-| BENCH-003 | Senior-engineer code review (claude and codex only) | codex, 30 vs 29 |
-| BENCH-004 | Senior-leader strategic review (claude and codex only) | claude, 30 vs 29 |
-| BENCH-005 | Orchestrating a refactor under a dispatch contract, Opus vs Codex CLI as orchestrator | claude, 18 vs 13: both lanes escalated after two loops, and the Opus lane left an audit trail the Codex lane did not |
+| BENCH-001 | A ~1500-word post in a fixed house style | codex 29 out of 30, joint top with claude |
+| BENCH-003 | Senior-engineer code review (claude and codex only) | codex, 30 vs 29 out of 30 |
+| BENCH-004 | Senior-leader strategic review (claude and codex only) | claude, 30 vs 29 out of 30 |
+| BENCH-005 | Orchestrating a refactor under a dispatch contract, Opus vs Codex CLI as orchestrator | claude, 18 vs 13 out of 30: both lanes escalated after two loops, and the Opus lane left an audit trail the Codex lane did not |
 | BENCH-006 | codegraph MCP against grep and Read, same model | codegraph on the verdict, from a rubric tie at 27 each |
-| BENCH-007 | An O(1) LFU cache across four frontier models | Fable 30 and Opus 30; the GPT-5.5 row is run but not yet scored, Gemini-Pro not run |
+| BENCH-007 | An O(1) LFU cache across four frontier models (two scored so far) | Fable 30 and Opus 30; the GPT-5.5 row is run but not yet scored, Gemini-Pro not run |
 | BENCH-008 | Opus 5 against Sonnet 5, the first `ab/` harness run | Sonnet: the same 6 of 6 gates at 71.6% less cost |
 | BENCH-009 | Codex Terra against Luna at medium effort, run overnight | Luna: 18 of 20 gates against 19, at 45% less of the 5-hour window |
+
+BENCH-002 is parked (see `tasks/BENCH-002/README.md`) and EXAMPLE-001 is a worked example, which explains the gaps in the numbering.
 
 ## Tools under test
 
@@ -179,7 +187,7 @@ The four-tool side, scored against `rubric.md`. Each row is a bench from
 ## Task-fork workflow
 
 1. A self-contained task is identified in another repo or from scratch.
-2. The task spec is copied here as `tasks/<id>/brief.md` -- no code, just the brief.
+2. The task spec is copied here as `tasks/<id>/brief.md`: no code, just the brief.
 3. Each tool is given the identical brief in isolation. No tool sees another tool's output.
 4. Outputs are saved to `tasks/<id>/<tool>/` (or noted if the tool produced no artefact).
 5. The scorecard is completed at `tasks/<id>/scorecard.md` using the rubric in `rubric.md`.
@@ -199,14 +207,14 @@ The one-lead-model rule this replaced was retired on 2026-06-06. See
 
 ## iTone Substack series
 
-Results are written up as posts in the iTone series "What four AI subscriptions actually do". Each post covers one or more bench tasks, shares the scorecard, and draws a narrow, data-backed conclusion. The goal is specificity: not "Claude is better" but "on deterministic algorithmic tasks under 200 lines, Claude produced working code in one pass; Cursor required three correction cycles".
+Results are written up as posts in the iTone series "What four AI subscriptions actually do". Each post covers one or more bench tasks, shares the scorecard, and draws a narrow, data-backed conclusion. The goal is specificity: not "Claude is better" but a finding of the form "on deterministic algorithmic tasks under 200 lines, Claude produced working code in one pass; Cursor required three correction cycles". That sentence illustrates the intended form and is not a recorded result; Cursor has not been scored on any bench.
 
 ## Field notes
 
 `field-notes/` is an un-scored, narrative stream for real-project observations
 that are not fair four-tool comparisons: multi-model timelines, automation
 incidents, and production telemetry from the Autometta fleet. Field notes are
-never scored against `rubric.md` and never appear in `LEDGER.md` -- they have
+never scored against `rubric.md` and never appear in `LEDGER.md`; they have
 their own `field-notes/INDEX.md`. See `field-notes/README.md`.
 
 ## Repo structure
@@ -231,7 +239,7 @@ bench-marks/
   MODELS.md              Worker/verifier tier policy and the routing guide
   LEDGER.md              Rolling index of all tasks
   START-PROMPT.md        Paste-ready orchestrator prompt for new tasks
-  START-FIELD-NOTE-PROMPT.md  One-off prompt that scaffolded field-notes/
+  START-FIELD-NOTE-PROMPT.md  One-off prompt that scaffolded field-notes/ (FN-001 is reserved, not yet written)
   templates/
     brief-template.md    Task brief template
     scorecard-template.md Scorecard template
@@ -242,7 +250,7 @@ bench-marks/
   tasks/
     <task-id>/
       brief.md           The task brief (identical input to all tools)
-      scorecard.md       Scored results across all four tools
+      scorecard.md       Scored results across the tools run
       claude/            Claude output artefacts (if any)
       codex/             Codex output artefacts (if any)
       cursor/            Cursor output artefacts (if any)

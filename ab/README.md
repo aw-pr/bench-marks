@@ -42,7 +42,8 @@ but the cells cannot be re-run without the checkout. That is the one part of
 this harness a reader has to take on trust.
 
 The models are named as their vendors name them. Opus 5, Sonnet 5 and Haiku 4.5
-are Anthropic's tiers, largest to smallest. Terra and Luna are the two tiers of
+are Anthropic's tiers, largest to smallest; the context-hygiene lever ran on
+Sonnet 5.5 (`claude-sonnet-5-5`). Terra and Luna are the two tiers of
 OpenAI's GPT-5.6 that the Codex CLI offers (`gpt-5.6-terra` and
 `gpt-5.6-luna`); Terra is the larger.
 
